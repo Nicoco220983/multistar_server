@@ -35,6 +35,9 @@
         const menuEl = document.getElementById("menu")
 
         const roomId = window.location.pathname.split("/").pop()
+        const urlParams = new URLSearchParams(window.location.search)
+        const fullscreenActivated  = urlParams.get('fs') !== '0'
+
         let gameKey = null
         let joypadWs = null
 
@@ -83,7 +86,7 @@
             )
         }
 
-        function addFullscreenEventListerner() {
+        function addFullscreenEventListener() {
             wrapperEl.addEventListener("click", evt => {
                 if(!document.fullscreenElement) {
                     wrapperEl.parentElement.requestFullscreen()
@@ -92,7 +95,7 @@
             })
         }
 
-        addFullscreenEventListerner()
+        if(fullscreenActivated) addFullscreenEventListener()
         initJoypadWebsocket()
     </script>
 </html>

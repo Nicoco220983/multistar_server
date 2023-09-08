@@ -228,15 +228,15 @@ function addTo(group, obj) {
 }
 
 
+function propagUpdate(time) {
+  this.children.forEach(s => s.update && s.update(time))
+}
+
+
 function newGroup() {
   const group = Game.makeGroup()
   group.update = propagUpdate
   return group
-}
-
-
-function propagUpdate(time) {
-  this.children.forEach(s => s.update && s.update(time))
 }
 
 

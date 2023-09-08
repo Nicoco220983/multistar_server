@@ -1,4 +1,4 @@
-import { newTwo, newPointer } from './utils.mjs'
+import { urlAbsPath, newTwo, newPointer } from './utils.mjs'
 
 const WIDTH = 800
 const HEIGHT = 450
@@ -62,6 +62,15 @@ function newJoypadScene() {
 
   const scn = Joypad.makeGroup()
 
+  scn.buttons = newGroup()
+
+  addTo(scn.buttons, newArrowButton(
+    WIDTH/4, HEIGHT/2, 0
+  ))
+  addTo(scn.buttons, newArrowButton(
+    WIDTH*3/4, HEIGHT/2, 1
+  ))
+
   // scn.step = "GAME"
 
   // scn.hero = newHero(scn, {
@@ -82,9 +91,11 @@ function newJoypadScene() {
 
   scn.click = function(pointer) {
     if(!pointer.prevIsDown) {
-      Joypad.sendInput({
-          dir: pointer.x < WIDTH/2 ? 0 : 1
-      })
+      for(const button of scn.buttons.children) {
+        if(collide(pointer, button)) {
+          button.click()
+        }
+      }
     }
   }
 
@@ -123,10 +134,17 @@ function newJoypadScene() {
 }
 
 
-function newHero(pos) {
-  const hero = Joypad.makeRectangle(pos.x, pos.y, 30, 30)
-  hero.fill = "blue"
-  return hero
+function newArrowButton(x, y, dir) {
+  const res = Joypad.makeSprite(
+    urlAbsPath('assets/joypad_arrow.png'),
+    x, y,
+    1, 1,
+  )
+  res.scale = HEIGHT / 50
+  res.click = function() {
+    Joypad.sendInput({ dir })
+  }
+  return res
 }
 
 
@@ -136,6 +154,18 @@ function newHero(pos) {
 function addTo(group, obj) {
   group.add(obj)
   return obj
+}
+
+
+function propagUpdate(time) {
+  this.children.forEach(s => s.update && s.update(time))
+}
+
+
+function newGroup() {
+  const group = Joypad.makeGroup()
+  group.update = propagUpdate
+  return group
 }
 
 
