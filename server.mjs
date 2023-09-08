@@ -26,7 +26,7 @@ class GameServer {
 
   constructor() {
     this.port = PORT
-    this.parties = {}
+    this.rooms = {}
     this.initApp()
   }
 
@@ -38,9 +38,9 @@ class GameServer {
       res.json({ games })
     })
 
-    this.app.get("/party/:partyId", (req, res) => {
-      const { partyId } = req.params
-      if(this.parties[partyId] === undefined) {
+    this.app.get("/room/:roomId", (req, res) => {
+      const { roomId } = req.params
+      if(this.rooms[roomId] === undefined) {
         return res.sendStatus(404)
       }
       res.sendFile(join(DIRNAME, "public/joypad.html"))
@@ -84,39 +84,39 @@ class GameServer {
     return crypto.randomBytes(8).toString("hex")
   }
 
-  generatePartyId() {
+  generateRoomId() {
     return floor(random() * 1000).toString()
   }
 
   handleIdentifyClient(ws, kwargs) {
     ws.type = kwargs.type
-    if(ws.type === "party") {
-      const partyId = this.generatePartyId()
-      ws.party = this.parties[partyId] = {
-        id: partyId,
-        partyWebsocket: ws,
+    if(ws.type === "game") {
+      const roomId = this.generateRoomId()
+      ws.room = this.rooms[roomId] = {
+        id: roomId,
+        gameWebsocket: ws,
         joypadWebsockets: {},
       }
-      console.log(`Party '${partyId}' created`)
-      ws.send(Consts.MSG_KEYS.IDENTIFY_PARTY + JSON.stringify({
-        partyId
+      console.log(`Room '${roomId}' created`)
+      ws.send(Consts.MSG_KEYS.IDENTIFY_GAME + JSON.stringify({
+        roomId
       }))
     } else if(ws.type === "joypad") {
-      const { partyId } = kwargs
-      const party = this.parties[partyId]
-      if(!party) {
-        console.warn(`Joypad '${ws.id}' try to connect to non-existant party '${partyId}'`)
+      const { roomId } = kwargs
+      const room = this.rooms[roomId]
+      if(!room) {
+        console.warn(`Joypad '${ws.id}' try to connect to non-existant room '${roomId}'`)
         return
       }
-      ws.party = party
-      party.joypadWebsockets[ws.id] = ws
-      console.log(`Joypad '${ws.id}' connected to party '${partyId}'`)
-      if(party.gameKey) {
+      ws.room = room
+      room.joypadWebsockets[ws.id] = ws
+      console.log(`Joypad '${ws.id}' connected to room '${roomId}'`)
+      if(room.gameKey) {
         ws.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
-          gameKey: party.gameKey
+          gameKey: room.gameKey
         }))
       }
-      ws.party.partyWebsocket.send(Consts.MSG_KEYS.ADD_PLAYER + JSON.stringify({
+      ws.room.gameWebsocket.send(Consts.MSG_KEYS.ADD_PLAYER + JSON.stringify({
         id: ws.id
       }))
     } else console.warn("Unknown client type", ws.type)
@@ -124,10 +124,11 @@ class GameServer {
 
   handleSetGame(ws, kwargs) {
     const { gameKey } = kwargs
-    const { party } = ws
-    party.gameKey = gameKey
-    console.log(`Game of party '${party.id}' set to '${gameKey}'`)
-    for(const jpws of Object.values(ws.party.joypadWebsockets)) {
+    const { room } = ws
+    if(!room) return
+    room.gameKey = gameKey
+    console.log(`Game of romm '${room.id}' set to '${gameKey}'`)
+    for(const jpws of Object.values(ws.room.joypadWebsockets)) {
       jpws.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
         gameKey
       }))
@@ -135,25 +136,25 @@ class GameServer {
   }
 
   handleClientDeconnection(ws) {
-    const { party } = ws
-    if(!party) return
-    if(ws.type === "party") {
-      for(let ws of Object.values(party.joypadWebsockets)) ws.close()
-      delete this.parties[party.id]
-      console.log(`Party '${party.id}' closed`)
+    const { room } = ws
+    if(!room) return
+    if(ws.type === "game") {
+      for(let ws of Object.values(room.joypadWebsockets)) ws.close()
+      delete this.rooms[room.id]
+      console.log(`Room '${room.id}' closed`)
     } else if(ws.type === "joypad") {
-      delete party.joypadWebsockets[ws.id]
-      console.log(`Joypad '${ws.id}' left the party '${party.id}'`)
-      party.partyWebsocket.send(Consts.MSG_KEYS.RM_PLAYER + JSON.stringify({
+      delete room.joypadWebsockets[ws.id]
+      console.log(`Joypad '${ws.id}' left the room '${room.id}'`)
+      room.gameWebsocket.send(Consts.MSG_KEYS.RM_PLAYER + JSON.stringify({
         id: ws.id
       }))
     }
   }
 
   handleJoypadInput(ws, body) {
-    const { party } = ws
-    const { partyWebsocket } = party
-    partyWebsocket.send(Consts.MSG_KEYS.INPUT + ws.id + ':' + body)
+    const { room } = ws
+    const { gameWebsocket } = room
+    gameWebsocket.send(Consts.MSG_KEYS.INPUT + ws.id + ':' + body)
   }
 
   // startGame(key) {

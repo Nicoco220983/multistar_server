@@ -13,7 +13,7 @@ export default Object.freeze({
   MSG_KEY_LENGTH: 3,
   MSG_KEYS: {
     IDENTIFY_CLIENT: 'IDC',
-    IDENTIFY_PARTY: 'IDP',
+    IDENTIFY_GAME: 'IDG',
     SET_GAME: 'SGM',
     ADD_PLAYER: "APL",
     RM_PLAYER: "RPL",

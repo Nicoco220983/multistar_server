@@ -11,7 +11,7 @@ const BACKGROUND_COLOR = "#111"
 let Game = null
 
 
-function startParty(wrapperEl, partyWs) {
+function startGame(wrapperEl, gameWs) {
 
     Game = newTwo(wrapperEl, WIDTH, HEIGHT, {
       backgroundColor: BACKGROUND_COLOR
@@ -21,8 +21,8 @@ function startParty(wrapperEl, partyWs) {
   
     // const pointer = newPointer(Game)
 
-    Game.partyId = partyWs.partyId
-    Game.joypadUrl = `${window.location.href}party/${Game.partyId}`
+    Game.roomId = gameWs.roomId
+    Game.joypadUrl = `${window.location.href}room/${Game.roomId}`
     console.log(`Joypad URL: ${Game.joypadUrl }`)
 
     Game.playerIds = new Set()
@@ -212,4 +212,4 @@ function collide(obj1, obj2) {
 }
 
 
-export { startParty }
+export { startGame }

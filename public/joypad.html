@@ -34,7 +34,7 @@
         const wrapperEl = document.getElementById("aspect_ratio_wrapper")
         const menuEl = document.getElementById("menu")
 
-        const partyId = window.location.pathname.split("/").pop()
+        const roomId = window.location.pathname.split("/").pop()
         let gameKey = null
         let joypadWs = null
 
@@ -46,7 +46,7 @@
                 console.log('Connected to server')
                 joypadWs.send(Consts.MSG_KEYS.IDENTIFY_CLIENT + JSON.stringify({
                     type: "joypad",
-                    partyId,
+                    roomId,
                 }))
             })
 
@@ -69,7 +69,7 @@
         }
 
         function handleCloseConnection() {
-            wrapperEl.innerHTML = "<p>Deconnected from party :(</p>"
+            wrapperEl.innerHTML = "<p>Deconnected from server :(</p>"
         }
 
         async function startJoypad(gameKey) {

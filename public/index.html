@@ -35,56 +35,56 @@
         const wrapperEl = document.getElementById("aspect_ratio_wrapper")
         const menuEl = document.getElementById("menu")
 
-        let partyWs = null
-        let party = null
+        let gameWs = null
+        let game = null
         const playerIds = new Set()
 
-        function initPartyWebsocket() {
+        function initGameWebsocket() {
             const socketProtocol = (window.location.protocol.includes('https')) ? 'wss' : 'ws'
-            partyWs  = new WebSocket(`${socketProtocol}://${window.location.host}`)
+            gameWs  = new WebSocket(`${socketProtocol}://${window.location.host}`)
 
-            partyWs.addEventListener('open', () => {
+            gameWs.addEventListener('open', () => {
                 console.log('Connected to server')
-                partyWs.send(Consts.MSG_KEYS.IDENTIFY_CLIENT + JSON.stringify({
-                    type: "party",
+                gameWs.send(Consts.MSG_KEYS.IDENTIFY_CLIENT + JSON.stringify({
+                    type: "game",
                 }))
             })
 
-            partyWs.addEventListener('message', evt => {
+            gameWs.addEventListener('message', evt => {
                 const key = evt.data.substring(0, Consts.MSG_KEY_LENGTH)
                 const data = evt.data.substring(Consts.MSG_KEY_LENGTH)
-                if(key === Consts.MSG_KEYS.IDENTIFY_PARTY) handlePartyIdentification(JSON.parse(data))
+                if(key === Consts.MSG_KEYS.IDENTIFY_GAME) handleGameIdentification(JSON.parse(data))
                 else if(key === Consts.MSG_KEYS.ADD_PLAYER) handleAddPlayer(JSON.parse(data))
                 else if(key === Consts.MSG_KEYS.RM_PLAYER) handleRmPlayer(JSON.parse(data))
                 else if(key === Consts.MSG_KEYS.INPUT) handleInput(data)
                 else console.warn("Unknown websocket key", key)
             })
 
-            partyWs.addEventListener('close', () => location.reload())
+            gameWs.addEventListener('close', () => location.reload())
 
-            partyWs.addEventListener('error', console.error)
+            gameWs.addEventListener('error', console.error)
         }
 
-        function handlePartyIdentification(kwargs) {
-            partyWs.partyId = kwargs.partyId
-            console.log(`Identified as party '${partyWs.partyId}'`)
+        function handleGameIdentification(kwargs) {
+            gameWs.roomId = kwargs.roomId
+            console.log(`Identified as game for room '${gameWs.roomId}'`)
         }
 
         function handleAddPlayer(kwargs) {
             playerIds.add(kwargs.id)
-            if(party) party.addPlayer(kwargs.id)
+            if(game) game.addPlayer(kwargs.id)
         }
 
         function handleRmPlayer(kwargs) {
             playerIds.delete(kwargs.id)
-            if(party) party.rmPlayer(kwargs.id)
+            if(game) game.rmPlayer(kwargs.id)
         }
 
         function handleInput(data) {
             const idx = data.indexOf(':')
             const playerId = data.substring(0, idx)
             const kwargs = JSON.parse(data.substring(idx+1))
-            if(party) party.handleInput(playerId, kwargs)
+            if(game) game.handleInput(playerId, kwargs)
         }
 
         function initGamesMenu() {
@@ -95,11 +95,11 @@
         }
 
         async function startGame(gameKey) {
-            const src = await import(`/game/${gameKey}/party.mjs`)
+            const src = await import(`/game/${gameKey}/game.mjs`)
             wrapperEl.innerHTML = ""
-            party = src.startParty(wrapperEl, partyWs)
-            for(const playerId of playerIds) party.addPlayer(playerId)
-            partyWs.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
+            game = src.startGame(wrapperEl, gameWs)
+            for(const playerId of playerIds) game.addPlayer(playerId)
+            gameWs.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
                 gameKey,
             }))
         }
@@ -114,7 +114,7 @@
         }
 
         addFullscreenEventListerner()
-        initPartyWebsocket()
+        initGameWebsocket()
         initGamesMenu()
     </script>
 </html>
