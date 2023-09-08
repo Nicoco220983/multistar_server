@@ -45,9 +45,7 @@
 
             gameWs.addEventListener('open', () => {
                 console.log('Connected to server')
-                gameWs.send(Consts.MSG_KEYS.IDENTIFY_CLIENT + JSON.stringify({
-                    type: "game",
-                }))
+                gameWs.send(Consts.MSG_KEYS.IDENTIFY_GAME)
             })
 
             gameWs.addEventListener('message', evt => {

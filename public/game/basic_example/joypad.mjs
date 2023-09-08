@@ -1,7 +1,7 @@
 import { newTwo, newPointer } from './utils.mjs'
 
-const WIDTH = 600
-const HEIGHT = 400
+const WIDTH = 800
+const HEIGHT = 450
 const FPS = 60  // hardcoded in Twojs
 // const ICON_SIZE = 50
 const BACKGROUND_COLOR = "#111"
@@ -82,9 +82,9 @@ function newJoypadScene() {
 
   scn.click = function(pointer) {
     if(!pointer.prevIsDown) {
-        Joypad.sendInput({
-            clicked: true
-        })
+      Joypad.sendInput({
+          dir: pointer.x < WIDTH/2 ? 0 : 1
+      })
     }
   }
 

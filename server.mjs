@@ -65,7 +65,8 @@ class GameServer {
         const msg = isBinary ? data : data.toString()
         const key = msg.substring(0, Consts.MSG_KEY_LENGTH)
         const body = msg.substring(Consts.MSG_KEY_LENGTH)
-        if(key === Consts.MSG_KEYS.IDENTIFY_CLIENT) this.handleIdentifyClient(ws, JSON.parse(body))
+        if(key === Consts.MSG_KEYS.IDENTIFY_GAME) this.handleIdentifyGame(ws)
+        if(key === Consts.MSG_KEYS.IDENTIFY_JOYPAD) this.handleIdentifyJoypad(ws, JSON.parse(body))
         else if(key === Consts.MSG_KEYS.SET_GAME) this.handleSetGame(ws, JSON.parse(body))
         else if(key === Consts.MSG_KEYS.INPUT) this.handleJoypadInput(ws, body)
         else console.warn("Unknown websocket key", key)
@@ -88,35 +89,36 @@ class GameServer {
     return floor(random() * 1000).toString()
   }
 
-  handleIdentifyClient(ws, kwargs) {
-    ws.type = kwargs.type
-    if(ws.type === "game") {
-      const roomId = this.generateRoomId()
-      ws.room = this.rooms[roomId] = {
-        id: roomId,
-        gameWebsocket: ws,
-        joypadWebsockets: {},
-      }
-      console.log(`Room '${roomId}' created`)
-      ws.send(Consts.MSG_KEYS.IDENTIFY_GAME + JSON.stringify({
-        roomId
+  handleIdentifyGame(ws) {
+    ws.type = "game"
+    const roomId = this.generateRoomId()
+    ws.room = this.rooms[roomId] = {
+      id: roomId,
+      gameWebsocket: ws,
+      joypadWebsockets: {},
+    }
+    console.log(`Room '${roomId}' created`)
+    ws.send(Consts.MSG_KEYS.IDENTIFY_GAME + JSON.stringify({
+      roomId
+    }))
+  }
+
+  handleIdentifyJoypad(ws, kwargs) {
+    ws.type = "joypad"
+    const { roomId } = kwargs
+    const room = this.rooms[roomId]
+    if(!room || room.closed) { ws.close(); return }
+    ws.room = room
+    room.joypadWebsockets[ws.id] = ws
+    console.log(`Joypad '${ws.id}' connected to room '${roomId}'`)
+    if(room.gameKey) {
+      ws.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
+        gameKey: room.gameKey
       }))
-    } else if(ws.type === "joypad") {
-      const { roomId } = kwargs
-      const room = this.rooms[roomId]
-      if(!room || room.closed) { ws.close(); return }
-      ws.room = room
-      room.joypadWebsockets[ws.id] = ws
-      console.log(`Joypad '${ws.id}' connected to room '${roomId}'`)
-      if(room.gameKey) {
-        ws.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
-          gameKey: room.gameKey
-        }))
-      }
-      ws.room.gameWebsocket.send(Consts.MSG_KEYS.ADD_PLAYER + JSON.stringify({
-        id: ws.id
-      }))
-    } else console.warn("Unknown client type", ws.type)
+    }
+    ws.room.gameWebsocket.send(Consts.MSG_KEYS.ADD_PLAYER + JSON.stringify({
+      id: ws.id
+    }))
   }
 
   handleSetGame(ws, kwargs) {

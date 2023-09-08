@@ -44,8 +44,7 @@
 
             joypadWs.addEventListener('open', () => {
                 console.log('Connected to server')
-                joypadWs.send(Consts.MSG_KEYS.IDENTIFY_CLIENT + JSON.stringify({
-                    type: "joypad",
+                joypadWs.send(Consts.MSG_KEYS.IDENTIFY_JOYPAD + JSON.stringify({
                     roomId,
                 }))
             })
