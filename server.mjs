@@ -104,10 +104,7 @@ class GameServer {
     } else if(ws.type === "joypad") {
       const { roomId } = kwargs
       const room = this.rooms[roomId]
-      if(!room) {
-        console.warn(`Joypad '${ws.id}' try to connect to non-existant room '${roomId}'`)
-        return
-      }
+      if(!room || room.closed) { ws.close(); return }
       ws.room = room
       room.joypadWebsockets[ws.id] = ws
       console.log(`Joypad '${ws.id}' connected to room '${roomId}'`)
@@ -125,7 +122,7 @@ class GameServer {
   handleSetGame(ws, kwargs) {
     const { gameKey } = kwargs
     const { room } = ws
-    if(!room) return
+    if(!room || room.closed) { ws.close(); return }
     room.gameKey = gameKey
     console.log(`Game of romm '${room.id}' set to '${gameKey}'`)
     for(const jpws of Object.values(ws.room.joypadWebsockets)) {
@@ -137,8 +134,9 @@ class GameServer {
 
   handleClientDeconnection(ws) {
     const { room } = ws
-    if(!room) return
+    if(!room || room.closed) { ws.close(); return }
     if(ws.type === "game") {
+      room.closed = true
       for(let ws of Object.values(room.joypadWebsockets)) ws.close()
       delete this.rooms[room.id]
       console.log(`Room '${room.id}' closed`)
@@ -153,6 +151,7 @@ class GameServer {
 
   handleJoypadInput(ws, body) {
     const { room } = ws
+    if(!room || room.closed) { ws.close(); return }
     const { gameWebsocket } = room
     gameWebsocket.send(Consts.MSG_KEYS.INPUT + ws.id + ':' + body)
   }
