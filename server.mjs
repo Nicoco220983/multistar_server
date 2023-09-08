@@ -43,7 +43,7 @@ class GameServer {
       if(this.parties[partyId] === undefined) {
         return res.sendStatus(404)
       }
-      res.sendFile(join(DIRNAME, "public/controller.html"))
+      res.sendFile(join(DIRNAME, "public/joypad.html"))
     })
   }
 
@@ -67,7 +67,7 @@ class GameServer {
         const body = msg.substring(Consts.MSG_KEY_LENGTH)
         if(key === Consts.MSG_KEYS.IDENTIFY_CLIENT) this.handleIdentifyClient(ws, JSON.parse(body))
         else if(key === Consts.MSG_KEYS.SET_GAME) this.handleSetGame(ws, JSON.parse(body))
-        else if(key === Consts.MSG_KEYS.INPUT) this.handleControllerInput(ws, body)
+        else if(key === Consts.MSG_KEYS.INPUT) this.handleJoypadInput(ws, body)
         else console.warn("Unknown websocket key", key)
       })
     
@@ -95,22 +95,22 @@ class GameServer {
       ws.party = this.parties[partyId] = {
         id: partyId,
         partyWebsocket: ws,
-        controllerWebsockets: {},
+        joypadWebsockets: {},
       }
       console.log(`Party '${partyId}' created`)
       ws.send(Consts.MSG_KEYS.IDENTIFY_PARTY + JSON.stringify({
         partyId
       }))
-    } else if(ws.type === "controller") {
+    } else if(ws.type === "joypad") {
       const { partyId } = kwargs
       const party = this.parties[partyId]
       if(!party) {
-        console.warn(`Controller '${ws.id}' try to connect to non-existant party '${partyId}'`)
+        console.warn(`Joypad '${ws.id}' try to connect to non-existant party '${partyId}'`)
         return
       }
       ws.party = party
-      party.controllerWebsockets[ws.id] = ws
-      console.log(`Controller '${ws.id}' connected to party '${partyId}'`)
+      party.joypadWebsockets[ws.id] = ws
+      console.log(`Joypad '${ws.id}' connected to party '${partyId}'`)
       if(party.gameKey) {
         ws.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
           gameKey: party.gameKey
@@ -127,8 +127,8 @@ class GameServer {
     const { party } = ws
     party.gameKey = gameKey
     console.log(`Game of party '${party.id}' set to '${gameKey}'`)
-    for(const ctrlws of Object.values(ws.party.controllerWebsockets)) {
-      ctrlws.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
+    for(const jpws of Object.values(ws.party.joypadWebsockets)) {
+      jpws.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
         gameKey
       }))
     }
@@ -138,19 +138,19 @@ class GameServer {
     const { party } = ws
     if(!party) return
     if(ws.type === "party") {
-      for(let ws of Object.values(party.controllerWebsockets)) ws.close()
+      for(let ws of Object.values(party.joypadWebsockets)) ws.close()
       delete this.parties[party.id]
       console.log(`Party '${party.id}' closed`)
-    } else if(ws.type === "controller") {
-      delete party.controllerWebsockets[ws.id]
-      console.log(`Controller '${ws.id}' left the party '${party.id}'`)
+    } else if(ws.type === "joypad") {
+      delete party.joypadWebsockets[ws.id]
+      console.log(`Joypad '${ws.id}' left the party '${party.id}'`)
       party.partyWebsocket.send(Consts.MSG_KEYS.RM_PLAYER + JSON.stringify({
         id: ws.id
       }))
     }
   }
 
-  handleControllerInput(ws, body) {
+  handleJoypadInput(ws, body) {
     const { party } = ws
     const { partyWebsocket } = party
     partyWebsocket.send(Consts.MSG_KEYS.INPUT + ws.id + ':' + body)

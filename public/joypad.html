@@ -1,6 +1,6 @@
 <html>
     <head>
-        <title>MultiPlayer Controller</title>
+        <title>MultiPlayer Joypad</title>
         <style>
             body {
                 padding: 0;
@@ -36,49 +36,49 @@
 
         const partyId = window.location.pathname.split("/").pop()
         let gameKey = null
-        let controllerWs = null
+        let joypadWs = null
 
-        function initControllerWebsocket() {
+        function initJoypadWebsocket() {
             const socketProtocol = (window.location.protocol.includes('https')) ? 'wss' : 'ws'
-            controllerWs  = new WebSocket(`${socketProtocol}://${window.location.host}`)
+            joypadWs  = new WebSocket(`${socketProtocol}://${window.location.host}`)
 
-            controllerWs.addEventListener('open', () => {
+            joypadWs.addEventListener('open', () => {
                 console.log('Connected to server')
-                controllerWs.send(Consts.MSG_KEYS.IDENTIFY_CLIENT + JSON.stringify({
-                    type: "controller",
+                joypadWs.send(Consts.MSG_KEYS.IDENTIFY_CLIENT + JSON.stringify({
+                    type: "joypad",
                     partyId,
                 }))
             })
 
-            controllerWs.addEventListener('message', evt => {
+            joypadWs.addEventListener('message', evt => {
                 const key = evt.data.substring(0, Consts.MSG_KEY_LENGTH)
                 const data = evt.data.substring(Consts.MSG_KEY_LENGTH)
                 if(key === Consts.MSG_KEYS.SET_GAME) handleSetGame(JSON.parse(data))
                 else console.warn("Unknown websocket key", key)
             })
 
-            controllerWs.addEventListener('close', () => handleCloseConnection())
+            joypadWs.addEventListener('close', () => handleCloseConnection())
 
-            controllerWs.addEventListener('error', console.error)
+            joypadWs.addEventListener('error', console.error)
         }
 
         function handleSetGame(kwargs) {
             gameKey = kwargs.gameKey
             console.log(`Game set to '${gameKey}'`)
-            startController(gameKey)
+            startJoypad(gameKey)
         }
 
         function handleCloseConnection() {
             wrapperEl.innerHTML = "<p>Deconnected from party :(</p>"
         }
 
-        async function startController(gameKey) {
-            const controller = await import(`/game/${gameKey}/controller.mjs`)
+        async function startJoypad(gameKey) {
+            const joypad = await import(`/game/${gameKey}/joypad.mjs`)
             wrapperEl.innerHTML = ""
             const sendInput = data => {
-                controllerWs.send(Consts.MSG_KEYS.INPUT + JSON.stringify(data))
+                joypadWs.send(Consts.MSG_KEYS.INPUT + JSON.stringify(data))
             }
-            controller.startController(
+            joypad.startJoypad(
                 wrapperEl,
                 sendInput,
             )
@@ -94,6 +94,6 @@
         }
 
         addFullscreenEventListerner()
-        initControllerWebsocket()
+        initJoypadWebsocket()
     </script>
 </html>

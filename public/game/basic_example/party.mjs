@@ -22,8 +22,8 @@ function startParty(wrapperEl, partyWs) {
     // const pointer = newPointer(Game)
 
     Game.partyId = partyWs.partyId
-    Game.controllerUrl = `${window.location.href}party/${Game.partyId}`
-    console.log(`Controller URL: ${Game.controllerUrl }`)
+    Game.joypadUrl = `${window.location.href}party/${Game.partyId}`
+    console.log(`Joypad URL: ${Game.joypadUrl }`)
 
     Game.playerIds = new Set()
 
@@ -148,7 +148,7 @@ function newIntroScene() {
     textArgs
   ))
   addTo(scn.texts, Game.makeText(
-    Game.controllerUrl,
+    Game.joypadUrl,
     WIDTH / 2, HEIGHT / 2 + 24,
     textArgs
   ))

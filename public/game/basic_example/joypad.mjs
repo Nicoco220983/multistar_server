@@ -6,61 +6,61 @@ const FPS = 60  // hardcoded in Twojs
 // const ICON_SIZE = 50
 const BACKGROUND_COLOR = "#111"
 
-let Controller = null
+let Joypad = null
 
 
-function startController(wrapperEl, sendInput) {
+function startJoypad(wrapperEl, sendInput) {
 
-    Controller = newTwo(wrapperEl, WIDTH, HEIGHT, {
+    Joypad = newTwo(wrapperEl, WIDTH, HEIGHT, {
       backgroundColor: BACKGROUND_COLOR
     })
   
     //pauseGame(true)
   
-    const pointer = newPointer(Controller)
+    const pointer = newPointer(Joypad)
   
-    Controller.controllerScns = Controller.makeGroup()
-    Controller.getScene = () => Controller.controllerScns.children[0]
-    Controller.addScene = function(scn) {
-      const prevScn = Controller.getScene()
+    Joypad.controllerScns = Joypad.makeGroup()
+    Joypad.getScene = () => Joypad.controllerScns.children[0]
+    Joypad.addScene = function(scn) {
+      const prevScn = Joypad.getScene()
       if(prevScn) prevScn.remove()
-      Controller.controllerScns.add(scn)
+      Joypad.controllerScns.add(scn)
     }
-    Controller.addScene(newControllerScene())
+    Joypad.addScene(newJoypadScene())
   
-    // const icons = Controller.makeGroup()
-    // const fullscreenIcon = addTo(icons, newFullscreenIcon(Controller, {
+    // const icons = Joypad.makeGroup()
+    // const fullscreenIcon = addTo(icons, newFullscreenIcon(Joypad, {
     //   x: WIDTH - ICON_SIZE*3/4,
     //   y: ICON_SIZE*3/4,
     //   size: ICON_SIZE,
     // }))
   
     pointer.prevIsDown = false
-    Controller.bind("update", (frameCount, timeDelta) => {
+    Joypad.bind("update", (frameCount, timeDelta) => {
       const time = frameCount / FPS
-      const ctrlScn = Controller.getScene()
+      const scn = Joypad.getScene()
       if(pointer.isDown) {
         // if(collide(fullscreenIcon, pointer)) {
         //   if(!pointer.prevIsDown) fullscreenIcon.click()
         // } else {
-            ctrlScn.click(pointer)
+          scn.click(pointer)
         // }
       }
-      if(!Controller.paused) ctrlScn.update(time)
+      if(!Joypad.paused) scn.update(time)
       pointer.prevIsDown = pointer.isDown
     })
 
-    Controller.sendInput = sendInput
+    Joypad.sendInput = sendInput
   
     // document.addEventListener("blur", () => pauseGame(true))
     
-    Controller.play()
+    Joypad.play()
 }
 
 
-function newControllerScene() {
+function newJoypadScene() {
 
-  const scn = Controller.makeGroup()
+  const scn = Joypad.makeGroup()
 
   // scn.step = "GAME"
 
@@ -82,7 +82,7 @@ function newControllerScene() {
 
   scn.click = function(pointer) {
     if(!pointer.prevIsDown) {
-        Controller.sendInput({
+        Joypad.sendInput({
             clicked: true
         })
     }
@@ -111,8 +111,8 @@ function newControllerScene() {
 
   // onRemove(scn, () => music.stop())
 
-  scn.texts = addTo(scn, Controller.makeGroup())
-  addTo(scn.texts, Controller.makeText("Controller",
+  scn.texts = addTo(scn, Joypad.makeGroup())
+  addTo(scn.texts, Joypad.makeText("Joypad",
     WIDTH / 2, HEIGHT / 3,
     { fill: "white", alignment: "center", baseline: "top", size: 20 }
   ))
@@ -124,7 +124,7 @@ function newControllerScene() {
 
 
 function newHero(pos) {
-  const hero = Controller.makeRectangle(pos.x, pos.y, 30, 30)
+  const hero = Joypad.makeRectangle(pos.x, pos.y, 30, 30)
   hero.fill = "blue"
   return hero
 }
@@ -150,4 +150,4 @@ function collide(obj1, obj2) {
 }
 
 
-export { startController }
+export { startJoypad }
