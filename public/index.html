@@ -1,0 +1,120 @@
+<html>
+    <head>
+        <title>MultiPlayer Games</title>
+        <style>
+            body {
+                padding: 0;
+                margin: 0;
+                height: 100%;
+            }
+            .center {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+            #aspect_ratio_wrapper {
+                outline: 1px solid lightgrey;
+                width: 500px;
+                height: 500px;
+            }
+        </style>
+        <script src="two.min.js"></script>
+        <script type="module" src="games-menu.mjs"></script>
+    </head>
+    <body>
+        <div id="fullscreen_wrapper">
+            <div id="aspect_ratio_wrapper"></div>
+        </div>
+        <div id="menu"></div>
+    </body>
+    <script type="module">
+
+        import Consts from './consts.mjs'
+
+        const wrapperEl = document.getElementById("aspect_ratio_wrapper")
+        const menuEl = document.getElementById("menu")
+
+        let partyWs = null
+        let party = null
+        const playerIds = new Set()
+
+        function initPartyWebsocket() {
+            const socketProtocol = (window.location.protocol.includes('https')) ? 'wss' : 'ws'
+            partyWs  = new WebSocket(`${socketProtocol}://${window.location.host}`)
+
+            partyWs.addEventListener('open', () => {
+                console.log('Connected to server')
+                partyWs.send(Consts.MSG_KEYS.IDENTIFY_CLIENT + JSON.stringify({
+                    type: "party",
+                }))
+            })
+
+            partyWs.addEventListener('message', evt => {
+                const key = evt.data.substring(0, Consts.MSG_KEY_LENGTH)
+                const data = evt.data.substring(Consts.MSG_KEY_LENGTH)
+                if(key === Consts.MSG_KEYS.IDENTIFY_PARTY) handlePartyIdentification(JSON.parse(data))
+                else if(key === Consts.MSG_KEYS.ADD_PLAYER) handleAddPlayer(JSON.parse(data))
+                else if(key === Consts.MSG_KEYS.RM_PLAYER) handleRmPlayer(JSON.parse(data))
+                else if(key === Consts.MSG_KEYS.INPUT) handleInput(data)
+                else console.warn("Unknown websocket key", key)
+            })
+
+            partyWs.addEventListener('close', () => location.reload())
+
+            partyWs.addEventListener('error', console.error)
+        }
+
+        function handlePartyIdentification(kwargs) {
+            partyWs.partyId = kwargs.partyId
+            console.log(`Identified as party '${partyWs.partyId}'`)
+        }
+
+        function handleAddPlayer(kwargs) {
+            playerIds.add(kwargs.id)
+            if(party) party.addPlayer(kwargs.id)
+        }
+
+        function handleRmPlayer(kwargs) {
+            playerIds.delete(kwargs.id)
+            if(party) party.rmPlayer(kwargs.id)
+        }
+
+        function handleInput(data) {
+            const idx = data.indexOf(':')
+            const playerId = data.substring(0, idx)
+            const kwargs = JSON.parse(data.substring(idx+1))
+            if(party) party.handleInput(playerId, kwargs)
+        }
+
+        function initGamesMenu() {
+            const gamesMenuEl = document.createElement("games-menu")
+            gamesMenuEl.onSelect = gameKey => startGame(gameKey)
+            menuEl.innerHTML = ""
+            menuEl.appendChild(gamesMenuEl)
+        }
+
+        async function startGame(gameKey) {
+            const src = await import(`/game/${gameKey}/party.mjs`)
+            wrapperEl.innerHTML = ""
+            party = src.startParty(wrapperEl, partyWs)
+            for(const playerId of playerIds) party.addPlayer(playerId)
+            partyWs.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
+                gameKey,
+            }))
+        }
+
+        function addFullscreenEventListerner() {
+            wrapperEl.addEventListener("click", evt => {
+                if(!document.fullscreenElement) {
+                    wrapperEl.parentElement.requestFullscreen()
+                    evt.preventDefault()
+                }
+            })
+        }
+
+        addFullscreenEventListerner()
+        initPartyWebsocket()
+        initGamesMenu()
+    </script>
+</html>

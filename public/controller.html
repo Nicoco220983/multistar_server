@@ -1,0 +1,99 @@
+<html>
+    <head>
+        <title>MultiPlayer Controller</title>
+        <style>
+            body {
+                padding: 0;
+                margin: 0;
+                height: 100%;
+            }
+            .center {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+            #aspect_ratio_wrapper {
+                outline: 1px solid lightgrey;
+                width: 500px;
+                height: 500px;
+            }
+        </style>
+        <script src="../two.min.js"></script>
+    </head>
+    <body class="center">
+        <div id="fullscreen_wrapper" class="center">
+            <div id="aspect_ratio_wrapper" class="center"></div>
+        </div>
+        <div id="menu" class="center"></div>
+    </body>
+    <script type="module">
+
+        import Consts from '../consts.mjs'
+
+        const wrapperEl = document.getElementById("aspect_ratio_wrapper")
+        const menuEl = document.getElementById("menu")
+
+        const partyId = window.location.pathname.split("/").pop()
+        let gameKey = null
+        let controllerWs = null
+
+        function initControllerWebsocket() {
+            const socketProtocol = (window.location.protocol.includes('https')) ? 'wss' : 'ws'
+            controllerWs  = new WebSocket(`${socketProtocol}://${window.location.host}`)
+
+            controllerWs.addEventListener('open', () => {
+                console.log('Connected to server')
+                controllerWs.send(Consts.MSG_KEYS.IDENTIFY_CLIENT + JSON.stringify({
+                    type: "controller",
+                    partyId,
+                }))
+            })
+
+            controllerWs.addEventListener('message', evt => {
+                const key = evt.data.substring(0, Consts.MSG_KEY_LENGTH)
+                const data = evt.data.substring(Consts.MSG_KEY_LENGTH)
+                if(key === Consts.MSG_KEYS.SET_GAME) handleSetGame(JSON.parse(data))
+                else console.warn("Unknown websocket key", key)
+            })
+
+            controllerWs.addEventListener('close', () => handleCloseConnection())
+
+            controllerWs.addEventListener('error', console.error)
+        }
+
+        function handleSetGame(kwargs) {
+            gameKey = kwargs.gameKey
+            console.log(`Game set to '${gameKey}'`)
+            startController(gameKey)
+        }
+
+        function handleCloseConnection() {
+            wrapperEl.innerHTML = "<p>Deconnected from party :(</p>"
+        }
+
+        async function startController(gameKey) {
+            const controller = await import(`/game/${gameKey}/controller.mjs`)
+            wrapperEl.innerHTML = ""
+            const sendInput = data => {
+                controllerWs.send(Consts.MSG_KEYS.INPUT + JSON.stringify(data))
+            }
+            controller.startController(
+                wrapperEl,
+                sendInput,
+            )
+        }
+
+        function addFullscreenEventListerner() {
+            wrapperEl.addEventListener("click", evt => {
+                if(!document.fullscreenElement) {
+                    wrapperEl.parentElement.requestFullscreen()
+                    evt.preventDefault()
+                }
+            })
+        }
+
+        addFullscreenEventListerner()
+        initControllerWebsocket()
+    </script>
+</html>
