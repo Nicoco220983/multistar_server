@@ -1,6 +1,12 @@
 const { assign } = Object
 
 
+function urlAbsPath(relPath){
+  const url = new URL(relPath, import.meta.url)
+  return url.pathname
+}
+
+
 function newTwo(wrapperEl, width, height, kwargs) {
 
     const backgroundColor = (kwargs && kwargs.backgroundColor) || "black"
@@ -58,17 +64,41 @@ function newPointer(scnGraph) {
         el.addEventListener(key, () => pointer.isDown = false)
     }
 
-    // necessary for collision detection
-    pointer.getBoundingClientRect = function() {
-        return {
-        left: this.x,
-        top: this.y,
-        width: 0,
-        height: 0,
-        }
-    }
-
     return pointer
+}
+
+
+const Loads = []
+
+function addToLoads(obj) {
+    Loads.push(obj)
+    return obj
+}
+
+function checkAllLoaded() {
+    for(const o of Loads)
+        if(!o.loaded)
+            return false
+    Loads.length = 0
+    return true
+}
+
+function getHitBox(obj) {
+    if(obj.getHitBox) return obj.getHitBox()
+    if(obj.getBoundingClientRect) return obj.getBoundingClientRect()
+    const { x, y, width = 0, height = 0 } = obj
+    return {
+        left: x - width / 2,
+        top: y - height / 2,
+        width,
+        height,
+    }
+}
+
+function checkHit(obj1, obj2) {
+    const { left: l1, top: t1, width: w1, height: h1 } = getHitBox(obj1)
+    const { left: l2, top: t2, width: w2, height: h2 } = getHitBox(obj2)
+    return l1 < l2 + w2 && l2 < l1 + w1 && t1 < t2 + h2 && t2 < t1 + h1
 }
 
 
@@ -97,15 +127,12 @@ function newPointer(scnGraph) {
 // }
 
 
-function urlAbsPath(relPath){
-  const url = new URL(relPath, import.meta.url)
-  return url.pathname
-}
-
-
 export {
+    urlAbsPath,
     newTwo,
     newPointer,
+    addToLoads,
+    checkAllLoaded,
     // newFullscreenIcon,
-    urlAbsPath,
+    checkHit,
 }

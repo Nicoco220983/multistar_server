@@ -240,15 +240,4 @@ function newGroup() {
 }
 
 
-function collide(obj1, obj2) {
-  const rect1 = obj1.getBoundingClientRect()
-  const x1 = rect1.left, y1 = rect1.top, w1 = rect1.width, h1 = rect1.height
-  const rect2 = obj2.getBoundingClientRect()
-  const x2 = rect2.left, y2 = rect2.top, w2 = rect2.width, h2 = rect2.height
-  if(x1 > x2+w2 || x2 > x1+w1) return false
-  if(y1 > y2+h2 || y2 > y1+h1) return false
-  return true
-}
-
-
 export { startGame }

@@ -1,4 +1,6 @@
-import { urlAbsPath, newTwo, newPointer } from './utils.mjs'
+const { min } = Math
+
+import { urlAbsPath, newTwo, newPointer, addToLoads, checkAllLoaded, checkHit } from './utils.mjs'
 
 const WIDTH = 800
 const HEIGHT = 450
@@ -19,7 +21,7 @@ function startJoypad(wrapperEl, sendInput) {
   
     const pointer = newPointer(Joypad)
   
-    Joypad.controllerScns = Joypad.makeGroup()
+    Joypad.controllerScns = newGroup()
     Joypad.getScene = () => Joypad.controllerScns.children[0]
     Joypad.addScene = function(scn) {
       const prevScn = Joypad.getScene()
@@ -60,16 +62,24 @@ function startJoypad(wrapperEl, sendInput) {
 
 function newJoypadScene() {
 
-  const scn = Joypad.makeGroup()
+  const scn = newGroup()
 
-  scn.buttons = newGroup()
-
-  addTo(scn.buttons, newArrowButton(
-    WIDTH/4, HEIGHT/2, 0
-  ))
-  addTo(scn.buttons, newArrowButton(
-    WIDTH*3/4, HEIGHT/2, 1
-  ))
+  scn.setStep = function(step) {
+    this.step = step
+    if(step === "LOADING") {
+      this.loadingTxts = addTo(this, newGroup())
+      addTo(this.loadingTxts, Joypad.makeText(
+        "LOADING...",
+        WIDTH / 2, HEIGHT / 2, { fill: "white", size: 20 }
+      ))
+    } else if(step === "JOYPAD") {
+      this.loadingTxts.remove()
+      this.buttons = addTo(this, newGroup())
+      addTo(this.buttons, newArrowButton(0))
+      addTo(this.buttons, newArrowButton(1))
+    }
+  }
+  scn.setStep("LOADING")
 
   // scn.step = "GAME"
 
@@ -90,16 +100,18 @@ function newJoypadScene() {
   // range(3).forEach(i => newHeart(scn, i+1))
 
   scn.click = function(pointer) {
-    if(!pointer.prevIsDown) {
-      for(const button of scn.buttons.children) {
-        if(collide(pointer, button)) {
-          button.click()
-        }
+    if(this.step === "JOYPAD" && !pointer.prevIsDown) {
+      for(const button of this.buttons.children) {
+        if(checkHit(pointer, button)) button.click()
       }
     }
   }
 
-  scn.update = function(time) {}
+  scn.update = function(time) {
+    if(this.step === "LOADING") {
+      if(checkAllLoaded()) this.setStep("JOYPAD")
+    }
+  }
   //   if(scn.step === "GAME") {
   //     heroShootFactory(time)
   //     invaderFactory(time)
@@ -122,25 +134,32 @@ function newJoypadScene() {
 
   // onRemove(scn, () => music.stop())
 
-  scn.texts = addTo(scn, Joypad.makeGroup())
-  addTo(scn.texts, Joypad.makeText("Joypad",
-    WIDTH / 2, HEIGHT / 3,
-    { fill: "white", alignment: "center", baseline: "top", size: 20 }
-  ))
-
   // music.replay()
 
   return scn
 }
 
 
-function newArrowButton(x, y, dir) {
-  const res = Joypad.makeSprite(
-    urlAbsPath('assets/joypad_arrow.png'),
-    x, y,
-    1, 1,
-  )
-  res.scale = HEIGHT / 50
+const arrowImg = addToLoads(new Two.Texture(urlAbsPath('assets/joypad_arrow.png')))
+
+
+function newArrowButton(dir) {
+  const res = newGroup()
+  res.translation.x = WIDTH / 4 * (dir ? 3 : 1)
+  res.translation.y = HEIGHT / 2
+  const img = addTo(res, Joypad.makeSprite(
+    arrowImg,
+    0, 0,
+  ))
+  img.scale = min(WIDTH / 2, HEIGHT) / 50 * .8
+  res.getHitBox = function() {
+    return {
+      left: dir ? WIDTH / 2 : 0,
+      top: 0,
+      width: WIDTH / 2,
+      height: HEIGHT,
+    }
+  }
   res.click = function() {
     Joypad.sendInput({ dir })
   }
@@ -166,17 +185,6 @@ function newGroup() {
   const group = Joypad.makeGroup()
   group.update = propagUpdate
   return group
-}
-
-
-function collide(obj1, obj2) {
-  const rect1 = obj1.getBoundingClientRect()
-  const x1 = rect1.left, y1 = rect1.top, w1 = rect1.width, h1 = rect1.height
-  const rect2 = obj2.getBoundingClientRect()
-  const x2 = rect2.left, y2 = rect2.top, w2 = rect2.width, h2 = rect2.height
-  if(x1 > x2+w2 || x2 > x1+w1) return false
-  if(y1 > y2+h2 || y2 > y1+h1) return false
-  return true
 }
 
 
