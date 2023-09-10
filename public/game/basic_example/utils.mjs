@@ -110,18 +110,33 @@ function newCanvasFromSrc(src) {
     return canvas
 }
 
-// function _enrichCanvas(canvas) {
-//     canvas.clone = function(modifier) {
-//         const res = document.createElement("canvas")
-//         res.width = canvas.width
-//         res.height = canvas.height
-//         const ctx = res.getContext("2d")
-//         if(modifier) modifier(ctx)
-//         ctx.drawImage(canvas, 0, 0, canvas.width, canvas.height)
-//         _enrichCanvas(res)
-//         return res
-//     }
-// }
+function cloneCanvas(canvas, kwargs) {
+    const { width, height } = canvas
+    const res = document.createElement("canvas")
+    assign(res, { width, height })
+    const ctx = res.getContext("2d")
+    if(kwargs.flipX) {
+        ctx.translate(width, 0)
+        ctx.scale(-1, 1)
+    }
+    if(kwargs.flipY) {
+        ctx.translate(height, 0)
+        ctx.scale(1, -1)
+    }
+    ctx.drawImage(canvas, 0, 0, width, height)
+    return res
+}
+
+function colorizeCanvas(canvas, color) {
+    const { width, height } = canvas
+  const colorCanvas = newCanvas(width, height, color)
+  const colorCtx = colorCanvas.getContext("2d")
+  colorCtx.globalCompositeOperation = "destination-in"
+  colorCtx.drawImage(canvas, 0, 0, width, height)
+  const ctx = canvas.getContext("2d")
+  ctx.globalCompositeOperation = "color"
+  ctx.drawImage(colorCanvas, 0, 0, width, height)
+}
 
 function getHitBox(obj) {
     if(obj.getHitBox) return obj.getHitBox()
@@ -174,6 +189,8 @@ export {
     addToLoads,
     newCanvas,
     newCanvasFromSrc,
+    cloneCanvas,
+    colorizeCanvas,
     checkAllLoadsDone,
     // newFullscreenIcon,
     checkHit,

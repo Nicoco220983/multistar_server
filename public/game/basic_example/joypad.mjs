@@ -1,6 +1,7 @@
 const { min } = Math
 
-import { urlAbsPath, newTwo, newPointer, addToLoads, checkAllLoadsDone, newCanvas, newCanvasFromSrc, checkHit } from './utils.mjs'
+import * as utils from './utils.mjs'
+const { urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
 
 const WIDTH = 800
 const HEIGHT = 450
@@ -13,13 +14,13 @@ let Joypad = null
 
 function startJoypad(wrapperEl, sendInput) {
 
-    Joypad = newTwo(wrapperEl, WIDTH, HEIGHT, {
+    Joypad = utils.newTwo(wrapperEl, WIDTH, HEIGHT, {
       backgroundColor: BACKGROUND_COLOR
     })
   
     //pauseGame(true)
   
-    const pointer = newPointer(Joypad)
+    const pointer = utils.newPointer(Joypad)
   
     Joypad.controllerScns = newGroup()
     Joypad.getScene = () => Joypad.controllerScns.children[0]
@@ -145,7 +146,7 @@ function newJoypadScene() {
 // const ctx = canvas.getContext("2d")
 // ctx.fillStyle = "blue"
 // ctx.fillRect(0, 0, canvas.width, canvas.height)
-const arrowCanvas = addToLoads(newCanvasFromSrc(urlAbsPath("assets/joypad_arrow.png")))
+const arrowCanvas = addToLoads(utils.newCanvasFromSrc(urlAbsPath("assets/joypad_arrow.png")))
 
 
 function newArrowButton(dir) {
@@ -172,22 +173,8 @@ function newArrowButton(dir) {
 }
 
 function buildArrowImage(dir, color) {
-  const { width, height } = arrowCanvas
-  const res = newCanvas(width, height)
-  const ctx = res.getContext("2d")
-  // flip x (if nedded)
-  if(dir) {
-    ctx.translate(width, 0)
-    ctx.scale(-1, 1)
-  }
-  ctx.drawImage(arrowCanvas, 0, 0, width, height)
-  // colorize
-  const colorCanvas = newCanvas(width, height, color)
-  const colorCtx = colorCanvas.getContext("2d")
-  colorCtx.globalCompositeOperation = "destination-in"
-  colorCtx.drawImage(res, 0, 0, width, height)
-  ctx.globalCompositeOperation = "color"
-  ctx.drawImage(colorCanvas, 0, 0, width, height)
+  const res = utils.cloneCanvas(arrowCanvas, { flipX: (dir === 1)})
+  utils.colorizeCanvas(res, color)
   return new Two.Texture(res)
 }
 
