@@ -140,7 +140,7 @@ function newJoypadScene() {
 }
 
 
-const arrowImg = addToLoads(new Two.Texture(urlAbsPath('assets/joypad_arrow.png')))
+const arrowsImg = addToLoads(new Two.Texture(urlAbsPath('assets/joypad_arrows.png')))
 
 
 function newArrowButton(dir) {
@@ -148,10 +148,12 @@ function newArrowButton(dir) {
   res.translation.x = WIDTH / 4 * (dir ? 3 : 1)
   res.translation.y = HEIGHT / 2
   const img = addTo(res, Joypad.makeSprite(
-    arrowImg,
+    arrowsImg,
     0, 0,
+    2, 1,
   ))
-  img.scale = min(WIDTH / 2, HEIGHT) / 50 * .8
+  img.scale = min(WIDTH / 2, HEIGHT) / 200 * .8
+  img.index = dir
   res.getHitBox = function() {
     return {
       left: dir ? WIDTH / 2 : 0,
