@@ -101,14 +101,15 @@ function newJoypadScene() {
   // range(3).forEach(i => newHeart(scn, i+1))
 
   scn.click = function(pointer) {
-    if(this.step === "JOYPAD" && !pointer.prevIsDown) {
+    if(this.step === "JOYPAD") {
       for(const button of this.buttons.children) {
-        if(checkHit(pointer, button)) button.click()
+        if(checkHit(pointer, button)) button.click(pointer)
       }
     }
   }
 
   scn.update = function(time) {
+    propagUpdate.call(this, time)
     if(this.step === "LOADING") {
       if(checkAllLoadsDone()) this.setStep("JOYPAD")
     }
@@ -141,23 +142,36 @@ function newJoypadScene() {
 }
 
 
-// const canvas = document.createElement('canvas')
-// canvas.width = canvas.height = 200
-// const ctx = canvas.getContext("2d")
-// ctx.fillStyle = "blue"
-// ctx.fillRect(0, 0, canvas.width, canvas.height)
-const arrowCanvas = addToLoads(utils.newCanvasFromSrc(urlAbsPath("assets/joypad_arrow.png")))
+const arrowCanvas = {
+  base: addToLoads(utils.newCanvasFromSrc(urlAbsPath("assets/joypad_arrow.png"))),
+  baseClicked: addToLoads(utils.newCanvasFromSrc(urlAbsPath("assets/joypad_arrow_clicked.png"))),
+  get: function(dir, clicked, color) {
+    const key = `trans:${dir},${clicked}`
+    if(!this[key]) {
+      const base = clicked ? this.baseClicked : this.base
+      this[key] = utils.cloneCanvas(base, { flipX: (dir === 1)})
+      if(color) utils.colorizeCanvas(this[key], color)
+    }
+    return this[key]
+  }
+}
+
 
 
 function newArrowButton(dir) {
   const res = newGroup()
   res.translation.x = WIDTH / 4 * (dir ? 3 : 1)
   res.translation.y = HEIGHT / 2
-  const img = addTo(res, Joypad.makeSprite(
-    buildArrowImage(dir, "red"),
-    0, 0,
-  ))
+  const img = addTo(res, Joypad.makeImageSequence([
+    new Two.Texture(arrowCanvas.get(dir, false, "red")),
+    new Two.Texture(arrowCanvas.get(dir, true, "red")),
+  ], 0, 0))
   img.scale = min(WIDTH / 2, HEIGHT) / 200 * .8
+  res.lastClickTime = -1
+  res.update = function(time) {
+    this.time = time
+    img.index = this.time > this.lastClickTime + .1 ? 0 : 1
+  }
   res.getHitBox = function() {
     return {
       left: dir ? WIDTH / 2 : 0,
@@ -166,16 +180,11 @@ function newArrowButton(dir) {
       height: HEIGHT,
     }
   }
-  res.click = function() {
-    Joypad.sendInput({ dir })
+  res.click = function(pointer) {
+    this.lastClickTime = this.time
+    if(!pointer.prevIsDown) Joypad.sendInput({ dir })
   }
   return res
-}
-
-function buildArrowImage(dir, color) {
-  const res = utils.cloneCanvas(arrowCanvas, { flipX: (dir === 1)})
-  utils.colorizeCanvas(res, color)
-  return new Two.Texture(res)
 }
 
 
