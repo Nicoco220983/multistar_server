@@ -175,12 +175,19 @@ function buildArrowImage(dir, color) {
   const { width, height } = arrowCanvas
   const res = newCanvas(width, height)
   const ctx = res.getContext("2d")
+  // flip x (if nedded)
   if(dir) {
-    // flip x
     ctx.translate(width, 0)
     ctx.scale(-1, 1)
   }
   ctx.drawImage(arrowCanvas, 0, 0, width, height)
+  // colorize
+  const colorCanvas = newCanvas(width, height, color)
+  const colorCtx = colorCanvas.getContext("2d")
+  colorCtx.globalCompositeOperation = "destination-in"
+  colorCtx.drawImage(res, 0, 0, width, height)
+  ctx.globalCompositeOperation = "color"
+  ctx.drawImage(colorCanvas, 0, 0, width, height)
   return new Two.Texture(res)
 }
 
