@@ -1,6 +1,6 @@
 const { min } = Math
 
-import { urlAbsPath, newTwo, newPointer, addToLoads, checkAllLoaded, checkHit } from './utils.mjs'
+import { urlAbsPath, newTwo, newPointer, addToLoads, checkAllLoadsDone, newCanvas, newCanvasFromSrc, checkHit } from './utils.mjs'
 
 const WIDTH = 800
 const HEIGHT = 450
@@ -109,7 +109,7 @@ function newJoypadScene() {
 
   scn.update = function(time) {
     if(this.step === "LOADING") {
-      if(checkAllLoaded()) this.setStep("JOYPAD")
+      if(checkAllLoadsDone()) this.setStep("JOYPAD")
     }
   }
   //   if(scn.step === "GAME") {
@@ -140,7 +140,12 @@ function newJoypadScene() {
 }
 
 
-const arrowsImg = addToLoads(new Two.Texture(urlAbsPath('assets/joypad_arrows.png')))
+// const canvas = document.createElement('canvas')
+// canvas.width = canvas.height = 200
+// const ctx = canvas.getContext("2d")
+// ctx.fillStyle = "blue"
+// ctx.fillRect(0, 0, canvas.width, canvas.height)
+const arrowCanvas = addToLoads(newCanvasFromSrc(urlAbsPath("assets/joypad_arrow.png")))
 
 
 function newArrowButton(dir) {
@@ -148,12 +153,10 @@ function newArrowButton(dir) {
   res.translation.x = WIDTH / 4 * (dir ? 3 : 1)
   res.translation.y = HEIGHT / 2
   const img = addTo(res, Joypad.makeSprite(
-    arrowsImg,
+    buildArrowImage(dir, "red"),
     0, 0,
-    2, 1,
   ))
   img.scale = min(WIDTH / 2, HEIGHT) / 200 * .8
-  img.index = dir
   res.getHitBox = function() {
     return {
       left: dir ? WIDTH / 2 : 0,
@@ -166,6 +169,19 @@ function newArrowButton(dir) {
     Joypad.sendInput({ dir })
   }
   return res
+}
+
+function buildArrowImage(dir, color) {
+  const { width, height } = arrowCanvas
+  const res = newCanvas(width, height)
+  const ctx = res.getContext("2d")
+  if(dir) {
+    // flip x
+    ctx.translate(width, 0)
+    ctx.scale(-1, 1)
+  }
+  ctx.drawImage(arrowCanvas, 0, 0, width, height)
+  return new Two.Texture(res)
 }
 
 

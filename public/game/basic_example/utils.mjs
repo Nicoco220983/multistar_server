@@ -75,13 +75,53 @@ function addToLoads(obj) {
     return obj
 }
 
-function checkAllLoaded() {
+function checkAllLoadsDone() {
     for(const o of Loads)
         if(!o.loaded)
             return false
     Loads.length = 0
     return true
 }
+
+function newCanvas(width, height, color) {
+    const canvas = document.createElement("canvas")
+    canvas.width = width
+    canvas.height = height
+    if(color) {
+        const ctx = canvas.getContext("2d")
+        ctx.fillStyle = color
+        ctx.fillRect(0, 0, width, height)
+    }
+    return canvas
+}
+
+function newCanvasFromSrc(src) {
+    const canvas = document.createElement("canvas")
+    const img = document.createElement("img")
+    img.onload = () => {
+        canvas.width = img.width
+        canvas.height = img.height
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height)
+        canvas.loaded = true
+    }
+    img.onerror = console.error
+    img.src = src
+    // _enrichCanvas(canvas)
+    return canvas
+}
+
+// function _enrichCanvas(canvas) {
+//     canvas.clone = function(modifier) {
+//         const res = document.createElement("canvas")
+//         res.width = canvas.width
+//         res.height = canvas.height
+//         const ctx = res.getContext("2d")
+//         if(modifier) modifier(ctx)
+//         ctx.drawImage(canvas, 0, 0, canvas.width, canvas.height)
+//         _enrichCanvas(res)
+//         return res
+//     }
+// }
 
 function getHitBox(obj) {
     if(obj.getHitBox) return obj.getHitBox()
@@ -132,7 +172,9 @@ export {
     newTwo,
     newPointer,
     addToLoads,
-    checkAllLoaded,
+    newCanvas,
+    newCanvasFromSrc,
+    checkAllLoadsDone,
     // newFullscreenIcon,
     checkHit,
 }
