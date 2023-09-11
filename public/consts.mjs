@@ -15,8 +15,7 @@ export default Object.freeze({
     IDENTIFY_GAME: 'IDG',
     IDENTIFY_JOYPAD: 'IDJ',
     SET_GAME: 'SGM',
-    ADD_PLAYER: "APL",
-    RM_PLAYER: "RPL",
+    SYNC_PLAYERS: "PLA",
     INPUT: 'INP',
   },
 })

@@ -92,11 +92,9 @@ class GameServer {
   handleIdentifyGame(ws) {
     ws.type = "game"
     const roomId = this.generateRoomId()
-    ws.room = this.rooms[roomId] = {
-      id: roomId,
-      gameWebsocket: ws,
-      joypadWebsockets: {},
-    }
+    ws.room = this.rooms[roomId] = new Room(
+      roomId, ws
+    )
     console.log(`Room '${roomId}' created`)
     ws.send(Consts.MSG_KEYS.IDENTIFY_GAME + JSON.stringify({
       roomId
@@ -104,21 +102,32 @@ class GameServer {
   }
 
   handleIdentifyJoypad(ws, kwargs) {
-    ws.type = "joypad"
-    const { roomId } = kwargs
-    const room = this.rooms[roomId]
-    if(!room || room.closed) { ws.close(); return }
-    ws.room = room
-    room.joypadWebsockets[ws.id] = ws
-    console.log(`Joypad '${ws.id}' connected to room '${roomId}'`)
-    if(room.gameKey) {
-      ws.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
-        gameKey: room.gameKey
+    if(!ws.room) {
+      ws.type = "joypad"
+      const { roomId } = kwargs
+      const room = this.rooms[roomId]
+      if(!room || room.closed) { ws.close(); return }
+      ws.room = room
+      room.joypadWebsockets[ws.id] = ws
+      console.log(`Joypad '${ws.id}' connected to room '${roomId}'`)
+      room.numPlayer += 1
+      ws.send(Consts.MSG_KEYS.IDENTIFY_JOYPAD + JSON.stringify({
+        playerName: `Player${room.numPlayer}`
       }))
+      if(room.gameKey) {
+        ws.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
+          gameKey: room.gameKey
+        }))
+      }
+    } else {
+      const { room } = ws
+      if(!room || room.closed) { ws.close(); return }
+      if(kwargs.playerName) ws.playerName = kwargs.playerName
+      if(kwargs.playerColor) ws.playerColor = kwargs.playerColor
+      const msg = Consts.MSG_KEYS.SYNC_PLAYERS + JSON.stringify(room.exportPlayers())
+      room.sendToGame(msg)
+      room.sendToJoypads(msg)
     }
-    ws.room.gameWebsocket.send(Consts.MSG_KEYS.ADD_PLAYER + JSON.stringify({
-      id: ws.id
-    }))
   }
 
   handleSetGame(ws, kwargs) {
@@ -127,11 +136,9 @@ class GameServer {
     if(!room || room.closed) { ws.close(); return }
     room.gameKey = gameKey
     console.log(`Game of romm '${room.id}' set to '${gameKey}'`)
-    for(const jpws of Object.values(ws.room.joypadWebsockets)) {
-      jpws.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
-        gameKey
-      }))
-    }
+    room.sendToJoypads(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
+      gameKey
+    }))
   }
 
   handleClientDeconnection(ws) {
@@ -145,17 +152,16 @@ class GameServer {
     } else if(ws.type === "joypad") {
       delete room.joypadWebsockets[ws.id]
       console.log(`Joypad '${ws.id}' left the room '${room.id}'`)
-      room.gameWebsocket.send(Consts.MSG_KEYS.RM_PLAYER + JSON.stringify({
-        id: ws.id
-      }))
+      const msg = Consts.MSG_KEYS.SYNC_PLAYERS + JSON.stringify(room.exportPlayers())
+      room.sendToGame(msg)
+      room.sendToGame(msg)
     }
   }
 
   handleJoypadInput(ws, body) {
     const { room } = ws
     if(!room || room.closed) { ws.close(); return }
-    const { gameWebsocket } = room
-    gameWebsocket.send(Consts.MSG_KEYS.INPUT + ws.id + ':' + body)
+    room.sendToGame(Consts.MSG_KEYS.INPUT + ws.id + ':' + body)
   }
 
   // startGame(key) {
@@ -215,6 +221,42 @@ class GameServer {
   // }
 }
 
+
+class Room {
+
+  constructor(id, gameWs) {
+    this.id = id
+    this.numPlayer = 0
+    this.gameWebsocket = gameWs
+    this.joypadWebsockets = {}
+  }
+
+  sendToGame(msg) {
+    this.gameWebsocket.send(msg)
+  }
+
+  sendToJoypads(msg) {
+    for(const jpws of Object.values(this.joypadWebsockets)) {
+      jpws.send(msg)
+    }
+  }
+
+  exportPlayers() {
+    const res = {}
+    const { joypadWebsockets } = this
+    for(const jpWs of Object.values(joypadWebsockets)) {
+      const { playerName, playerColor } = jpWs
+      if(!playerName) continue
+      res[jpWs.id] = {
+        name: playerName,
+        color: playerColor
+      }
+    }
+    return res
+  }
+}
+
+
 function getLocalIps() {
   const nets = networkInterfaces();
   const res = {}
@@ -234,6 +276,7 @@ function getLocalIps() {
   }
   return res
 }
+
 
 const gameServer = new GameServer()
 gameServer.serve()

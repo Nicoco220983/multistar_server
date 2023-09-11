@@ -25,31 +25,24 @@ function startGame(wrapperEl, gameWs) {
     Game.joypadUrl = `${window.location.href}room/${Game.roomId}`
     console.log(`Joypad URL: ${Game.joypadUrl }`)
 
-    Game.playerIds = new Set()
-
-    Game.addPlayer = function(playerId) {
-      Game.playerIds.add(playerId)
-      const scn = Game.getScene()
-      if(scn) scn.addPlayer(playerId)
+    Game.syncPlayers = function(players) {
+      this.players = players
+      const scn = this.getScene()
+      if(scn) scn.syncPlayers(players)
     }
 
-    Game.rmPlayer = function(playerId) {
-      Game.playerIds.delete(playerId)
-      const scn = Game.getScene()
-      if(scn) scn.rmPlayer(playerId)
-    }
-
-    Game.handleInput = (playerId, kwargs) => {
-      Game.getScene().handleInput(playerId, kwargs)
+    Game.handleInput = function(playerId, kwargs) {
+      const scn = this.getScene()
+      if(scn) scn.handleInput(playerId, kwargs)
     }
   
     Game.gameScns = newGroup()
     Game.getScene = () => Game.gameScns.children[0]
     Game.addScene = function(scn) {
-      const prevScn = Game.getScene()
+      const prevScn = this.getScene()
       if(prevScn) prevScn.remove()
-      Game.gameScns.add(scn)
-      for(const playerId of Game.playerIds) scn.addPlayer(playerId)
+      this.gameScns.add(scn)
+      if(this.players) scn.syncPlayers(this.players)
     }
     Game.addScene(newGameScene())
   
@@ -134,8 +127,10 @@ function newGameScene() {
 
   // onRemove(scn, () => music.stop())
 
-  scn.addPlayer = playerId => scn.addHero(playerId)
-  scn.rmPlayer = playerId => scn.rmHero(playerId)
+  scn.syncPlayers = function(players) {
+    for(const playerId in players) if(!this.herosById[playerId]) this.addHero(playerId)
+    for(const playerId in this.herosById) if(!players[playerId]) this.rmHero(playerId)
+  }
 
   // heros
 
@@ -143,10 +138,12 @@ function newGameScene() {
 
   scn.herosById = {}
   scn.addHero = playerId => {
-    const hero = scn.herosById[playerId] = addTo(scn.heros, newHero({
-      x: (.25 + .5 * random()) * WIDTH,
-      y: (.25 + .5 * random()) * HEIGHT,
-    }))
+    const hero = scn.herosById[playerId] = addTo(scn.heros, newHero(
+      (.25 + .5 * random()) * WIDTH,
+      (.25 + .5 * random()) * HEIGHT,
+      Game.players[playerId].name,
+      Game.players[playerId].color
+    ))
     hero.playerId = playerId
   }
   scn.rmHero = playerId => {
@@ -190,9 +187,21 @@ function newGameScene() {
 }
 
 
-function newHero(pos) {
-  const hero = Game.makeRectangle(pos.x, pos.y, 30, 30)
-  hero.fill = "blue"
+function newHero(x, y, name, color) {
+  const hero = newGroup()
+  hero.translation.x = x
+  hero.translation.y = y
+  hero.width = 30
+  hero.height = 30
+
+  const rect = addTo(hero, Game.makeRectangle(0, 0, hero.width, hero.height))
+  rect.fill = color
+
+  addTo(hero, Game.makeText(
+    name,
+    0, 25,
+    { fill: "white", size: 14 }
+  ))
 
   hero.spdX = 100 * (random() > .5 ? 1 : -1)
   hero.spdY = 100 * (random() > .5 ? 1 : -1)

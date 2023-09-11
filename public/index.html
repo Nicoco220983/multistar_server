@@ -37,7 +37,7 @@
 
         let gameWs = null
         let game = null
-        const playerIds = new Set()
+        let players = null
 
         function initGameWebsocket() {
             const socketProtocol = (window.location.protocol.includes('https')) ? 'wss' : 'ws'
@@ -52,8 +52,7 @@
                 const key = evt.data.substring(0, Consts.MSG_KEY_LENGTH)
                 const data = evt.data.substring(Consts.MSG_KEY_LENGTH)
                 if(key === Consts.MSG_KEYS.IDENTIFY_GAME) handleGameIdentification(JSON.parse(data))
-                else if(key === Consts.MSG_KEYS.ADD_PLAYER) handleAddPlayer(JSON.parse(data))
-                else if(key === Consts.MSG_KEYS.RM_PLAYER) handleRmPlayer(JSON.parse(data))
+                else if(key === Consts.MSG_KEYS.SYNC_PLAYERS) handleSyncPlayers(JSON.parse(data))
                 else if(key === Consts.MSG_KEYS.INPUT) handleInput(data)
                 else console.warn("Unknown websocket key", key)
             })
@@ -68,14 +67,9 @@
             console.log(`Identified as game for room '${gameWs.roomId}'`)
         }
 
-        function handleAddPlayer(kwargs) {
-            playerIds.add(kwargs.id)
-            if(game) game.addPlayer(kwargs.id)
-        }
-
-        function handleRmPlayer(kwargs) {
-            playerIds.delete(kwargs.id)
-            if(game) game.rmPlayer(kwargs.id)
+        function handleSyncPlayers(iPlayers) {
+            players = iPlayers
+            if(game) game.syncPlayers(players)
         }
 
         function handleInput(data) {
@@ -96,7 +90,7 @@
             const src = await import(`/game/${gameKey}/game.mjs`)
             wrapperEl.innerHTML = ""
             game = src.startGame(wrapperEl, gameWs)
-            for(const playerId of playerIds) game.addPlayer(playerId)
+            if(players) game.syncPlayers(players)
             gameWs.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
                 gameKey,
             }))

@@ -7,11 +7,27 @@
                 margin: 0;
                 height: 100%;
             }
-            .center {
+            .flexcol {
                 display: flex;
                 flex-direction: column;
+                gap: 5px;
+            }
+            .flexrow {
+                display: flex;
+                flex-direction: row;
+                gap: 5px;
+            }
+            .center {
                 align-items: center;
                 justify-content: center;
+            }
+            .color {
+                width: 50px;
+                height: 50px;
+                cursor: pointer;
+            }
+            .color.selected {
+                outline: 5px solid yellow;
             }
             #aspect_ratio_wrapper {
                 outline: 1px solid lightgrey;
@@ -21,25 +37,40 @@
         </style>
         <script src="../two.min.js"></script>
     </head>
-    <body class="center">
+    <body class="flexcol center">
+        <div id="identification" class="flexcol">
+            <p class="flexrow center">
+                Enter your name: <input class="player_name" type="text">
+            </p>
+            <p class="flexrow center">
+                Pick your color: <span class="flexrow colors"></span>
+            </p>
+            <p class="flexrow center"><button class="join">Join</button></p>
+        </div>
         <div id="fullscreen_wrapper" class="center">
             <div id="aspect_ratio_wrapper" class="center"></div>
         </div>
-        <div id="menu" class="center"></div>
+        <div id="games_menu" class="center"></div>
     </body>
     <script type="module">
 
         import Consts from '../consts.mjs'
 
+        const colors = ["red","blue","yellow","green","purple","orange"]
+
+        const idEl = document.getElementById("identification")
         const wrapperEl = document.getElementById("aspect_ratio_wrapper")
-        const menuEl = document.getElementById("menu")
+        const gamesMenuEl = document.getElementById("games_menu")
 
         const roomId = window.location.pathname.split("/").pop()
         const urlParams = new URLSearchParams(window.location.search)
         const fullscreenActivated  = urlParams.get('fs') !== '0'
 
-        let gameKey = null
+        let step = "IDENTIFICATION"
         let joypadWs = null
+        let gameKey = null
+        const player = {}
+        let players = null
 
         function initJoypadWebsocket() {
             const socketProtocol = (window.location.protocol.includes('https')) ? 'wss' : 'ws'
@@ -55,7 +86,9 @@
             joypadWs.addEventListener('message', evt => {
                 const key = evt.data.substring(0, Consts.MSG_KEY_LENGTH)
                 const data = evt.data.substring(Consts.MSG_KEY_LENGTH)
-                if(key === Consts.MSG_KEYS.SET_GAME) handleSetGame(JSON.parse(data))
+                if(key === Consts.MSG_KEYS.IDENTIFY_JOYPAD) handleIdentifyJoypad(JSON.parse(data))
+                else if(key === Consts.MSG_KEYS.SET_GAME) handleSetGame(JSON.parse(data))
+                else if(key === Consts.MSG_KEYS.SYNC_PLAYERS) handleSyncPlayers(JSON.parse(data))
                 else console.warn("Unknown websocket key", key)
             })
 
@@ -64,10 +97,59 @@
             joypadWs.addEventListener('error', console.error)
         }
 
+        function initIdentificationForm() {
+            idEl.style.display = ""
+            wrapperEl.style.display = "none"
+            gamesMenuEl.style.display = "none"
+
+            const colorsEl = idEl.querySelector(".colors")
+            for(const color of colors) {
+                const colorEl = document.createElement("div")
+                colorEl.classList.add("color")
+                colorEl.style.backgroundColor = color
+                colorEl.onclick = () => {
+                    player.color = color
+                    for(const el of colorsEl.querySelectorAll(".color"))
+                        el.classList.remove("selected")
+                    colorEl.classList.add("selected")
+                }
+                colorsEl.appendChild(colorEl)
+            }
+
+            idEl.querySelector(".join").onclick = () => {
+                player.name = idEl.querySelector(".player_name").value || player.name || "Player"
+                player.color ||= "blue"
+                joypadWs.send(Consts.MSG_KEYS.IDENTIFY_JOYPAD + JSON.stringify({
+                    playerName: player.name,
+                    playerColor: player.color,
+                }))
+                initGame()
+            }
+        }
+
+        function initGame() {
+            step = "GAME"
+            idEl.style.display = "none"
+            wrapperEl.style.display = ""
+            gamesMenuEl.style.display = ""
+            if(gameKey) startJoypad(gameKey)
+        }
+
+        function handleIdentifyJoypad(kwargs) {
+            if(kwargs.playerName) {
+                player.name = kwargs.playerName
+                idEl.querySelector(".player_name").placeholder = player.name
+            }
+        }
+
         function handleSetGame(kwargs) {
             gameKey = kwargs.gameKey
             console.log(`Game set to '${gameKey}'`)
-            startJoypad(gameKey)
+            if(step === "GAME") startJoypad(gameKey)
+        }
+
+        function handleSyncPlayers(iPlayers) {
+            players = iPlayers
         }
 
         function handleCloseConnection() {
@@ -82,6 +164,7 @@
             }
             joypad.startJoypad(
                 wrapperEl,
+                player,
                 sendInput,
             )
         }
@@ -97,5 +180,6 @@
 
         if(fullscreenActivated) addFullscreenEventListener()
         initJoypadWebsocket()
+        initIdentificationForm()
     </script>
 </html>
