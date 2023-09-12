@@ -28,7 +28,7 @@ function startGame(wrapperEl, gameWs) {
     Game.syncPlayers = function(players) {
       this.players = players
       const scn = this.getScene()
-      if(scn) scn.syncPlayers(players)
+      if(scn) scn.syncPlayers()
     }
 
     Game.handleInput = function(playerId, kwargs) {
@@ -108,59 +108,17 @@ function newGameScene() {
         WIDTH / 2, HEIGHT / 2 + 36,
         textArgs
       ))
+      this.syncPlayers()
     } else if(step === "GAME") {
       this.introTexts.remove()
     }
   }
   scn.setStep("LOADING")
 
-  // scn.hero = newHero(scn, {
-  //   x: Game.width * 0.5,
-  //   y: Game.height * 0.75,
-  // })
-  // scn.heroShoots = addTo(scn, newGroup())
-  // const heroShootFactory = every(.5, () => newHeroShoot(scn, scn.hero.translation))
-
-  // scn.invaders = addTo(scn, newGroup())
-  // const invaderFactory = every(1, () => { if(scn.invaders.children.length <= 5) newInvader(scn) })
-  // scn.invaderShoots = addTo(scn, newGroup())
-  // scn.invaderDeaths = addTo(scn, newGroup())
-
-  // scn.indics = addTo(scn, newGroup())
-  // newScoreIndic(scn)
-  // range(3).forEach(i => newHeart(scn, i+1))
-
-  // scn.click = function(pointer) {
-  //   if(scn.step === "GAME") scn.hero.posTarget = { x:pointer.x, y:pointer.y }
-  //   else if(scn.step === "GAMEOVER")
-  //     if(scn.readyToRestart) newGameScene(Game)
-  // }
-
-  //   if(scn.step === "GAME") {
-  //     heroShootFactory(time)
-  //     invaderFactory(time)
-  //     propagUpdate.call(this, time)
-  //   } else if(scn.step === "GAMEOVER") {
-  //     scn.afterGameOver ||= after(2, () => {
-  //       newGameOverClickIndic(scn)
-  //       scn.readyToRestart = true
-  //     })
-  //     scn.afterGameOver(time)
-  //   }
-  // }
-
-  // scn.setStep = function(step) {
-  //   this.step = step
-  //   if(step === "GAMEOVER") {
-  //     newGameOverIndic(scn)
-  //   }
-  // }
-
-  // onRemove(scn, () => music.stop())
-
-  scn.syncPlayers = function(players) {
-    for(const playerId in players) if(!this.getHero(playerId)) this.addHero(playerId)
-    for(const hero in this.heros.children) if(!players[hero.playerId]) this.rmHero(hero.playerId)
+  scn.syncPlayers = function() {
+    if(this.step === "LOADING") return
+    for(const playerId in Game.players) if(!this.getHero(playerId)) this.addHero(playerId)
+    for(const hero in this.heros.children) if(!Game.players[hero.playerId]) this.rmHero(hero.playerId)
   }
 
   // background
@@ -170,12 +128,12 @@ function newGameScene() {
   ))
   background.scale = 2.5
 
-  // heros
+  scn.stars = addTo(scn, newGroup())
+  scn.nextStarTime = 0
 
   scn.heros = addTo(scn, newGroup())
-
   scn.addHero = function(playerId) {
-    const hero = addTo(this.heros, newHero(
+    addTo(this.heros, newHero(
       playerId,
       (.25 + .5 * random()) * WIDTH,
       (.25 + .5 * random()) * HEIGHT,
@@ -191,9 +149,6 @@ function newGameScene() {
     const hero = this.getHero(playerId)
     if(hero) hero.remove()
   }
-
-  scn.stars = addTo(scn, newGroup())
-  scn.nextStarTime = 0
 
   scn.update = function(time) {
     propagUpdate.call(this, time)
@@ -237,11 +192,12 @@ function newGameScene() {
 const heroCanvas = {
   base: addToLoads(utils.newCanvasFromSrc(urlAbsPath("assets/hero.png"))),
   get: function(color) {
-    if(!this.colored) {
-      this.colored = utils.cloneCanvas(this.base)
-      utils.colorizeCanvas(this.colored, color)
+    const key = `trans:${color}`
+    if(!this[key]) {
+      this[key] = utils.cloneCanvas(this.base)
+      utils.colorizeCanvas(this[key], color)
     }
-    return this.colored
+    return this[key]
   }
 }
 
@@ -252,8 +208,7 @@ function newHero(playerId, x, y, name, color) {
 
   hero.translation.x = x
   hero.translation.y = y
-  hero.width = 50
-  hero.height = 50
+  hero.width = hero.height = 80
   hero.spdX = 200 * (random() > .5 ? 1 : -1)
   hero.spdY = 200 * (random() > .5 ? 1 : -1)
   hero.score = 0
@@ -261,12 +216,12 @@ function newHero(playerId, x, y, name, color) {
   const img = addTo(hero, new Two.ImageSequence([
     new Two.Texture(heroCanvas.get(color)),
   ], 0, 0))
-  img.scale = 50 / 100
+  img.scale = 80 / 100
 
   addTo(hero, new Two.Text(
     name,
-    0, 40,
-    { fill: "black", size: 20 }
+    0, 60,
+    { fill: "black", size: 30 }
   ))
 
   hero.update = function(time) {
@@ -307,8 +262,8 @@ function newStar(dir, y) {
   }
 
   star.getHitBox = function() {
-    const width = this.width * .6
-    const height = this.height * .6
+    const width = this.width * .4
+    const height = this.height * .4
     return {
       left: star.translation.x - width/2,
       top: star.translation.y - height/2,
