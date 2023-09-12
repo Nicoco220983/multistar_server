@@ -111,8 +111,10 @@ class GameServer {
       room.playerWebsockets[ws.id] = ws
       console.log(`Player '${ws.id}' connected to room '${roomId}'`)
       room.numPlayer += 1
+      ws.name = `Player${room.numPlayer}`
+      ws.color = "blue"
       ws.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify({
-        name: `Player${room.numPlayer}`
+        name: this.serve.name, color: ws.color
       }))
       if(room.gameKey) {
         ws.send(Consts.MSG_KEYS.START_GAME + JSON.stringify({

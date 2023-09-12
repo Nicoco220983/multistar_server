@@ -18,4 +18,6 @@ export default Object.freeze({
     SYNC_PLAYERS: "PLA",
     JOYPAD_INPUT: 'INP',
   },
+
+  PLAYER_COLORS: ["red","blue","yellow","green","purple","orange"],
 })

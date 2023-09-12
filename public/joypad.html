@@ -21,14 +21,6 @@
                 align-items: center;
                 justify-content: center;
             }
-            .color {
-                width: 50px;
-                height: 50px;
-                cursor: pointer;
-            }
-            .color.selected {
-                outline: 5px solid yellow;
-            }
             #aspect_ratio_wrapper {
                 outline: 1px solid lightgrey;
                 width: 500px;
@@ -36,6 +28,7 @@
             }
         </style>
         <script src="../two.min.js"></script>
+        <script type="module" src="/color-picker.mjs"></script>
     </head>
     <body class="flexcol center">
         <div id="identification" class="flexcol">
@@ -43,7 +36,7 @@
                 Enter your name: <input class="player_name" type="text">
             </p>
             <p class="flexrow center">
-                Pick your color: <span class="flexrow colors"></span>
+                Pick your color: <color-picker id="color_picker"></color-picker>
             </p>
             <p class="flexrow center"><button class="join">Join</button></p>
         </div>
@@ -59,6 +52,7 @@
         const colors = ["red","blue","yellow","green","purple","orange"]
 
         const idEl = document.getElementById("identification")
+        const colorPickerEl = document.getElementById("color_picker")
         const wrapperEl = document.getElementById("aspect_ratio_wrapper")
         const gamesMenuEl = document.getElementById("games_menu")
 
@@ -69,7 +63,7 @@
         let step = "IDENTIFICATION"
         let joypadWs = null
         let gameKey = null
-        const player = {}
+        let player = null
         let players = null
 
         function initJoypadWebsocket() {
@@ -102,23 +96,13 @@
             wrapperEl.style.display = "none"
             gamesMenuEl.style.display = "none"
 
-            const colorsEl = idEl.querySelector(".colors")
-            for(const color of colors) {
-                const colorEl = document.createElement("div")
-                colorEl.classList.add("color")
-                colorEl.style.backgroundColor = color
-                colorEl.onclick = () => {
-                    player.color = color
-                    for(const el of colorsEl.querySelectorAll(".color"))
-                        el.classList.remove("selected")
-                    colorEl.classList.add("selected")
-                }
-                colorsEl.appendChild(colorEl)
+            colorPickerEl.onSelect = color => {
+                player.color = color
+                joypadWs.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify(player))
             }
 
             idEl.querySelector(".join").onclick = () => {
                 player.name = idEl.querySelector(".player_name").value || player.name || "Player"
-                player.color ||= "blue"
                 joypadWs.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify(player))
                 initGame()
             }
@@ -133,10 +117,9 @@
         }
 
         function handleIdentifyPlayer(kwargs) {
-            if(kwargs.name) {
-                player.name = kwargs.name
-                idEl.querySelector(".player_name").placeholder = player.name
-            }
+            player = kwargs
+            idEl.querySelector(".player_name").placeholder = player.name
+            colorPickerEl.syncColor(player.color)
         }
 
         function handleStartGame(kwargs) {
@@ -145,8 +128,8 @@
             if(step === "GAME") startJoypad(gameKey)
         }
 
-        function handleSyncPlayers(iPlayers) {
-            players = iPlayers
+        function handleSyncPlayers(kwargs) {
+            players = kwargs
         }
 
         function handleCloseConnection() {

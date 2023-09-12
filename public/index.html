@@ -67,8 +67,8 @@
             console.log(`Identified as game for room '${gameWs.roomId}'`)
         }
 
-        function handleSyncPlayers(iPlayers) {
-            players = iPlayers
+        function handleSyncPlayers(kwargs) {
+            players = kwargs
             if(game) game.syncPlayers(players)
         }
 
