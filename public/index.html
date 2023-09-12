@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
     <head>
         <title>MultiPlayer Games</title>
@@ -18,6 +19,13 @@
                 width: 500px;
                 height: 500px;
             }
+            #joypad {
+                width: 90%;
+            }
+            #joypad iframe {
+                width: 100%;
+                aspect-ratio: 16 / 9;
+            }
             #menu {
                 padding: 1em;
             }
@@ -29,18 +37,23 @@
         <div id="fullscreen_wrapper" class="center">
             <div id="aspect_ratio_wrapper" class="center"></div>
         </div>
+        <div id="joypad" class="center"></div>
         <div id="menu" class="center"></div>
     </body>
     <script type="module">
 
         import Consts from './consts.mjs'
 
-        const wrapperEl = document.getElementById("aspect_ratio_wrapper")
-        const menuEl = document.getElementById("menu")
+        const urlParams = new URLSearchParams(window.location.search)
+        const showJoypad  = urlParams.get('joypad') === '1'
 
         let gameWs = null
         let game = null
         let players = null
+
+        const wrapperEl = document.getElementById("aspect_ratio_wrapper")
+        const joypadEl = document.getElementById("joypad")
+        const menuEl = document.getElementById("menu")
 
         function initGameWebsocket() {
             const socketProtocol = (window.location.protocol.includes('https')) ? 'wss' : 'ws'
@@ -60,7 +73,7 @@
                 else console.warn("Unknown websocket key", key)
             })
 
-            gameWs.addEventListener('close', () => location.reload())
+            gameWs.addEventListener('close', handleCloseConnection)
 
             gameWs.addEventListener('error', console.error)
         }
@@ -68,6 +81,9 @@
         function handleGameIdentification(kwargs) {
             gameWs.roomId = kwargs.roomId
             console.log(`Identified as game for room '${gameWs.roomId}'`)
+            gameWs.joypadUrl = new URL(`room/${gameWs.roomId}`, window.location.href)
+            console.log(`Joypad URL: ${gameWs.joypadUrl }`)
+            if(showJoypad) initJoypad(gameWs.joypadUrl)
         }
 
         function handleSyncPlayers(kwargs) {
@@ -80,6 +96,16 @@
             const playerId = data.substring(0, idx)
             const kwargs = JSON.parse(data.substring(idx+1))
             if(game) game.handleInput(playerId, kwargs)
+        }
+
+        function handleCloseConnection() {
+            wrapperEl.innerHTML = "<p>Deconnected from server :(</p>"
+        }
+
+        function initJoypad(joypadUrl) {
+            const iframeEl = document.createElement("iframe")
+            iframeEl.src = `${joypadUrl}?fs=0`
+            joypadEl.appendChild(iframeEl)
         }
 
         function initGamesMenu() {

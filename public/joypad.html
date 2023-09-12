@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
     <head>
         <title>MultiPlayer Joypad</title>
@@ -49,13 +50,6 @@
 
         import Consts from '../consts.mjs'
 
-        const colors = ["red","blue","yellow","green","purple","orange"]
-
-        const idEl = document.getElementById("identification")
-        const colorPickerEl = document.getElementById("color_picker")
-        const wrapperEl = document.getElementById("aspect_ratio_wrapper")
-        const gamesMenuEl = document.getElementById("games_menu")
-
         const roomId = window.location.pathname.split("/").pop()
         const urlParams = new URLSearchParams(window.location.search)
         const fullscreenActivated  = urlParams.get('fs') !== '0'
@@ -65,6 +59,11 @@
         let gameKey = null
         let player = null
         let players = null
+
+        const idEl = document.getElementById("identification")
+        const colorPickerEl = document.getElementById("color_picker")
+        const wrapperEl = document.getElementById("aspect_ratio_wrapper")
+        const gamesMenuEl = document.getElementById("games_menu")
 
         function initJoypadWebsocket() {
             const socketProtocol = (window.location.protocol.includes('https')) ? 'wss' : 'ws'
@@ -86,7 +85,7 @@
                 else console.warn("Unknown websocket key", key)
             })
 
-            joypadWs.addEventListener('close', () => handleCloseConnection())
+            joypadWs.addEventListener('close', handleCloseConnection)
 
             joypadWs.addEventListener('error', console.error)
         }
@@ -98,7 +97,6 @@
 
             colorPickerEl.onSelect = color => {
                 player.color = color
-                joypadWs.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify(player))
             }
 
             idEl.querySelector(".join").onclick = () => {

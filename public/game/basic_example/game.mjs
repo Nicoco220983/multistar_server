@@ -23,8 +23,7 @@ function startGame(wrapperEl, gameWs) {
     // const pointer = newPointer(Game)
 
     Game.roomId = gameWs.roomId
-    Game.joypadUrl = `${window.location.href}room/${Game.roomId}`
-    console.log(`Joypad URL: ${Game.joypadUrl }`)
+    Game.joypadUrl = gameWs.joypadUrl
 
     Game.syncPlayers = function(players) {
       this.players = players
@@ -109,6 +108,8 @@ function newGameScene() {
         WIDTH / 2, HEIGHT / 2 + 36,
         textArgs
       ))
+    } else if(step === "GAME") {
+      this.introTexts.remove()
     }
   }
   scn.setStep("LOADING")
@@ -158,8 +159,8 @@ function newGameScene() {
   // onRemove(scn, () => music.stop())
 
   scn.syncPlayers = function(players) {
-    for(const playerId in players) if(!this.herosById[playerId]) this.addHero(playerId)
-    for(const playerId in this.herosById) if(!players[playerId]) this.rmHero(playerId)
+    for(const playerId in players) if(!this.getHero(playerId)) this.addHero(playerId)
+    for(const hero in this.heros.children) if(!players[hero.playerId]) this.rmHero(hero.playerId)
   }
 
   // background
@@ -173,36 +174,58 @@ function newGameScene() {
 
   scn.heros = addTo(scn, newGroup())
 
-  scn.herosById = {}
-  scn.addHero = playerId => {
-    const hero = scn.herosById[playerId] = addTo(scn.heros, newHero(
+  scn.addHero = function(playerId) {
+    const hero = addTo(this.heros, newHero(
+      playerId,
       (.25 + .5 * random()) * WIDTH,
       (.25 + .5 * random()) * HEIGHT,
       Game.players[playerId].name,
       Game.players[playerId].color
     ))
-    hero.playerId = playerId
   }
-  scn.rmHero = playerId => {
-    const hero = scn.herosById[playerId]
-    if(!hero) return
-    hero.remove()
-    delete scn.herosById[playerId]
+  scn.getHero = function(playerId) {
+    const res = this.heros.children.filter(h => h.playerId === playerId)
+    return res ? res[0] : null
   }
+  scn.rmHero = function(playerId) {
+    const hero = this.getHero(playerId)
+    if(hero) hero.remove()
+  }
+
+  scn.stars = addTo(scn, newGroup())
+  scn.nextStarTime = 0
 
   scn.update = function(time) {
     propagUpdate.call(this, time)
     if(this.step === "LOADING") {
       if(checkAllLoadsDone()) this.setStep("INTRO")
+    } else if(this.step === "GAME") {
+      if(time > this.nextStarTime) {
+        addTo(this.stars, newStar(random() > .5, HEIGHT * random()))
+        this.nextStarTime = time + 1
+      }
+      for(const hero of this.heros.children) {
+        for(const star of this.stars.children) {
+          if(checkHit(hero, star)) {
+            addTo(this, newNotif(
+              (hero.score ? `${hero.score} ` : "") + "+ 1",
+              star.translation.x, star.translation.y - 20
+            ))
+            star.remove()
+            hero.score += 1
+          }
+        }
+      }
     }
   }
 
   // input
 
-  scn.handleInput = (playerId, kwargs) => {
-    const hero = scn.herosById[playerId]
+  scn.handleInput = function(playerId, kwargs) {
+    const hero = this.getHero(playerId)
     if(!hero) return
     hero.handleInput(kwargs)
+    if(this.step === "INTRO") this.setStep("GAME")
   }
 
   // music.replay()
@@ -223,38 +246,41 @@ const heroCanvas = {
 }
 
 
-function newHero(x, y, name, color) {
+function newHero(playerId, x, y, name, color) {
   const hero = newGroup()
+  hero.playerId = playerId
+
   hero.translation.x = x
   hero.translation.y = y
-  hero.width = hero.height = 50
+  hero.width = 50
+  hero.height = 50
+  hero.spdX = 200 * (random() > .5 ? 1 : -1)
+  hero.spdY = 200 * (random() > .5 ? 1 : -1)
+  hero.score = 0
 
   const img = addTo(hero, new Two.ImageSequence([
     new Two.Texture(heroCanvas.get(color)),
   ], 0, 0))
   img.scale = 50 / 100
 
-  addTo(hero, Game.makeText(
+  addTo(hero, new Two.Text(
     name,
     0, 40,
     { fill: "black", size: 20 }
   ))
 
-  hero.spdX = 200 * (random() > .5 ? 1 : -1)
-  hero.spdY = 200 * (random() > .5 ? 1 : -1)
-
   hero.update = function(time) {
-    const { x, y } = hero.translation
-    const { spdX, spdY } = hero
-    const w2 = hero.width / 2, h2 = hero.height / 2
+    this.translation.x += this.spdX / FPS
+    this.translation.y += this.spdY/ FPS
+    const { x, y } = this.translation
+    const { spdX, spdY } = this
+    const w2 = this.width / 2, h2 = this.height / 2
     if((spdX > 0 && x > WIDTH - w2) || (spdX < 0 && x < w2)) {
-      hero.spdX = -spdX
+      this.spdX = -spdX
     }
     if((spdY > 0 && y > HEIGHT - h2) || (spdY < 0 && y < h2)) {
-      hero.spdY = -spdY
+      this.spdY = -spdY
     }
-    hero.translation.x += hero.spdX / FPS
-    hero.translation.y += hero.spdY/ FPS
   }
 
   hero.handleInput = function(input) {
@@ -262,6 +288,36 @@ function newHero(x, y, name, color) {
   }
 
   return hero
+}
+
+
+function newStar(dir, y) {
+  const star = new Two.Sprite(
+    urlAbsPath("assets/star.png"),
+    dir ? WIDTH + 50 : -50, y
+  )
+  star.width = star.height = 80
+  star.scale = 80 / 100
+
+  star.spdX = dir ? -100 : 100
+
+  star.update = function(time) {
+    this.translation.x += this.spdX / FPS
+    if((this.x < -50 && this.spdX < 0) || (this.x > WIDTH + 50 && this.spdX > 0)) this.remove()
+  }
+
+  star.getHitBox = function() {
+    const width = this.width * .6
+    const height = this.height * .6
+    return {
+      left: star.translation.x - width/2,
+      top: star.translation.y - height/2,
+      width,
+      height,
+    }
+  }
+
+  return star
 }
 
 
@@ -283,6 +339,20 @@ function newGroup() {
   const group = Game.makeGroup()
   group.update = propagUpdate
   return group
+}
+
+
+function newNotif(txt, x, y) {
+  const notif = new Two.Text(
+    txt, x, y,
+    { size: 20 }
+  )
+  notif.update = function(time) {
+    this.translation.y -= 50 / FPS
+    this.removeTime ||= time + 1
+    if(time > this.removeTime) this.remove()
+  }
+  return notif
 }
 
 
