@@ -115,11 +115,11 @@ function cloneCanvas(canvas, kwargs) {
     const res = document.createElement("canvas")
     assign(res, { width, height })
     const ctx = res.getContext("2d")
-    if(kwargs.flipX) {
+    if(kwargs && kwargs.flipX) {
         ctx.translate(width, 0)
         ctx.scale(-1, 1)
     }
-    if(kwargs.flipY) {
+    if(kwargs && kwargs.flipY) {
         ctx.translate(height, 0)
         ctx.scale(1, -1)
     }

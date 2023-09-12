@@ -1,9 +1,10 @@
 const { abs, random } = Math
 
-import { newTwo } from './utils.mjs'
+import * as utils from './utils.mjs'
+const { urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
 
-const WIDTH = 600
-const HEIGHT = 400
+const WIDTH = 800
+const HEIGHT = 600
 const FPS = 60  // hardcoded in Twojs
 // const ICON_SIZE = 30
 const BACKGROUND_COLOR = "#111"
@@ -13,7 +14,7 @@ let Game = null
 
 function startGame(wrapperEl, gameWs) {
 
-    Game = newTwo(wrapperEl, WIDTH, HEIGHT, {
+    Game = utils.newTwo(wrapperEl, WIDTH, HEIGHT, {
       backgroundColor: BACKGROUND_COLOR
     })
   
@@ -81,7 +82,36 @@ function newGameScene() {
 
   const scn = newGroup()
 
-  scn.step = "INTRO"
+  scn.setStep = function(step) {
+    this.step = step
+    if(step === "LOADING") {
+      this.loadingTxts = addTo(this, newGroup())
+      addTo(this.loadingTxts, new Two.Text(
+        "LOADING...",
+        WIDTH / 2, HEIGHT / 2, { fill: "white", size: 20 }
+      ))
+    } else if(step === "INTRO") {
+      this.loadingTxts.remove()
+      this.introTexts = addTo(this, newGroup())
+      const textArgs = { size: 24, fill: "black", alignment: "center", baseline: "top" }
+      addTo(this.introTexts, new Two.Text(
+        "Basic Example",
+        WIDTH / 2, HEIGHT / 3,
+        { ...textArgs, size: 50 }
+      ))
+      addTo(this.introTexts, new Two.Text(
+        "Join the game:",
+        WIDTH / 2, HEIGHT / 2,
+        textArgs
+      ))
+      addTo(this.introTexts, new Two.Text(
+        Game.joypadUrl,
+        WIDTH / 2, HEIGHT / 2 + 36,
+        textArgs
+      ))
+    }
+  }
+  scn.setStep("LOADING")
 
   // scn.hero = newHero(scn, {
   //   x: Game.width * 0.5,
@@ -132,6 +162,13 @@ function newGameScene() {
     for(const playerId in this.herosById) if(!players[playerId]) this.rmHero(playerId)
   }
 
+  // background
+  const background = addTo(scn, new Two.Sprite(
+    urlAbsPath("assets/background.jpg"),
+    WIDTH / 2, HEIGHT / 2,
+  ))
+  background.scale = 2.5
+
   // heros
 
   scn.heros = addTo(scn, newGroup())
@@ -153,25 +190,12 @@ function newGameScene() {
     delete scn.herosById[playerId]
   }
 
-  // intro test
-
-  scn.introTexts = addTo(scn, newGroup())
-  const textArgs = { size: 16, fill: "white", alignment: "center", baseline: "top" }
-  addTo(scn.introTexts, Game.makeText(
-    "Basic Example",
-    WIDTH / 2, HEIGHT / 3,
-    { ...textArgs, size: 20 }
-  ))
-  addTo(scn.introTexts, Game.makeText(
-    "Join the game:",
-    WIDTH / 2, HEIGHT / 2,
-    textArgs
-  ))
-  addTo(scn.introTexts, Game.makeText(
-    Game.joypadUrl,
-    WIDTH / 2, HEIGHT / 2 + 24,
-    textArgs
-  ))
+  scn.update = function(time) {
+    propagUpdate.call(this, time)
+    if(this.step === "LOADING") {
+      if(checkAllLoadsDone()) this.setStep("INTRO")
+    }
+  }
 
   // input
 
@@ -187,24 +211,37 @@ function newGameScene() {
 }
 
 
+const heroCanvas = {
+  base: addToLoads(utils.newCanvasFromSrc(urlAbsPath("assets/hero.png"))),
+  get: function(color) {
+    if(!this.colored) {
+      this.colored = utils.cloneCanvas(this.base)
+      utils.colorizeCanvas(this.colored, color)
+    }
+    return this.colored
+  }
+}
+
+
 function newHero(x, y, name, color) {
   const hero = newGroup()
   hero.translation.x = x
   hero.translation.y = y
-  hero.width = 30
-  hero.height = 30
+  hero.width = hero.height = 50
 
-  const rect = addTo(hero, Game.makeRectangle(0, 0, hero.width, hero.height))
-  rect.fill = color
+  const img = addTo(hero, new Two.ImageSequence([
+    new Two.Texture(heroCanvas.get(color)),
+  ], 0, 0))
+  img.scale = 50 / 100
 
   addTo(hero, Game.makeText(
     name,
-    0, 25,
-    { fill: "white", size: 14 }
+    0, 40,
+    { fill: "black", size: 20 }
   ))
 
-  hero.spdX = 100 * (random() > .5 ? 1 : -1)
-  hero.spdY = 100 * (random() > .5 ? 1 : -1)
+  hero.spdX = 200 * (random() > .5 ? 1 : -1)
+  hero.spdY = 200 * (random() > .5 ? 1 : -1)
 
   hero.update = function(time) {
     const { x, y } = hero.translation

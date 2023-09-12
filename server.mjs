@@ -114,7 +114,7 @@ class GameServer {
       ws.name = `Player${room.numPlayer}`
       ws.color = "blue"
       ws.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify({
-        name: this.serve.name, color: ws.color
+        name: ws.name, color: ws.color
       }))
       if(room.gameKey) {
         ws.send(Consts.MSG_KEYS.START_GAME + JSON.stringify({
