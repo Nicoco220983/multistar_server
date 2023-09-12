@@ -6,18 +6,45 @@ class GamesMenu extends HTMLElement {
     }
 
     initContent() {
-        this.innerHTML = `
-            <template class="gametmpl">
-                <div class="game">
-                    <p class="title"></p>
-                    <p class="description"></p>
-                    <img class="icon">
-                </div>
-            </template>
-            <div class="games"></div>
+        const shdw = this.attachShadow({ mode: "open" })
+        shdw.innerHTML = `
+            <style>
+                #games {
+                    display: inline-flex;
+                    flex-direction: row;
+                    gap: 1em;
+                }
+                .game {
+                    display: flex;
+                    flex-direction: column;
+                    gap: .5em;
+                    padding: .5em;
+                    width: 10em;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 0 10px lightgrey;
+                    cursor: pointer;
+                }
+                .title {
+                    font-weight: bold;
+                }
+                .icon {
+                    width: 8em;
+                    height: 8em;
+                }
+            </style>
+            <div id="games">
+                <template id="gametmpl">
+                    <div class="game">
+                        <div class="title"></div>
+                        <div class="description"></div>
+                        <img class="icon">
+                    </div>
+                </template>
+            </div>
         `
-        this.gameTmpl = this.querySelector(".gametmpl")
-        this.gamesEl = this.querySelector(".games")
+        this.gameTmpl = shdw.getElementById("gametmpl")
+        this.gamesEl = shdw.getElementById("games")
     }
 
     fetchGames() {
@@ -35,7 +62,9 @@ class GamesMenu extends HTMLElement {
         const gameEl = this.gameTmpl.content.cloneNode(true)
         gameEl.querySelector(".title").textContent = game.title
         gameEl.querySelector(".description").textContent = game.description
-        gameEl.querySelector(".icon").src = `/games/${gameKey}/icon.jpg`
+        const iconEl = gameEl.querySelector(".icon")
+        iconEl.src = `/games/${gameKey}/icon.jpg`
+        iconEl.onerror = () => iconEl.src='/default_game_icon.jpg'
         gameEl.querySelector(".game").onclick = () => this.onSelect(gameKey, game)
         return gameEl
     }
