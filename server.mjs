@@ -66,9 +66,9 @@ class GameServer {
         const key = msg.substring(0, Consts.MSG_KEY_LENGTH)
         const body = msg.substring(Consts.MSG_KEY_LENGTH)
         if(key === Consts.MSG_KEYS.IDENTIFY_GAME) this.handleIdentifyGame(ws)
-        if(key === Consts.MSG_KEYS.IDENTIFY_JOYPAD) this.handleIdentifyJoypad(ws, JSON.parse(body))
-        else if(key === Consts.MSG_KEYS.SET_GAME) this.handleSetGame(ws, JSON.parse(body))
-        else if(key === Consts.MSG_KEYS.INPUT) this.handleJoypadInput(ws, body)
+        else if(key === Consts.MSG_KEYS.IDENTIFY_PLAYER) this.handleIdentifyPlayer(ws, JSON.parse(body))
+        else if(key === Consts.MSG_KEYS.START_GAME) this.handleStartGame(ws, JSON.parse(body))
+        else if(key === Consts.MSG_KEYS.JOYPAD_INPUT) this.handleJoypadInput(ws, body)
         else console.warn("Unknown websocket key", key)
       })
     
@@ -101,42 +101,42 @@ class GameServer {
     }))
   }
 
-  handleIdentifyJoypad(ws, kwargs) {
+  handleIdentifyPlayer(ws, kwargs) {
     if(!ws.room) {
-      ws.type = "joypad"
+      ws.type = "player"
       const { roomId } = kwargs
       const room = this.rooms[roomId]
       if(!room || room.closed) { ws.close(); return }
       ws.room = room
-      room.joypadWebsockets[ws.id] = ws
-      console.log(`Joypad '${ws.id}' connected to room '${roomId}'`)
+      room.playerWebsockets[ws.id] = ws
+      console.log(`Player '${ws.id}' connected to room '${roomId}'`)
       room.numPlayer += 1
-      ws.send(Consts.MSG_KEYS.IDENTIFY_JOYPAD + JSON.stringify({
-        playerName: `Player${room.numPlayer}`
+      ws.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify({
+        name: `Player${room.numPlayer}`
       }))
       if(room.gameKey) {
-        ws.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
+        ws.send(Consts.MSG_KEYS.START_GAME + JSON.stringify({
           gameKey: room.gameKey
         }))
       }
     } else {
       const { room } = ws
       if(!room || room.closed) { ws.close(); return }
-      if(kwargs.playerName) ws.playerName = kwargs.playerName
-      if(kwargs.playerColor) ws.playerColor = kwargs.playerColor
+      if(kwargs.name) ws.name = kwargs.name
+      if(kwargs.color) ws.color = kwargs.color
       const msg = Consts.MSG_KEYS.SYNC_PLAYERS + JSON.stringify(room.exportPlayers())
       room.sendToGame(msg)
-      room.sendToJoypads(msg)
+      room.sendToPlayers(msg)
     }
   }
 
-  handleSetGame(ws, kwargs) {
+  handleStartGame(ws, kwargs) {
     const { gameKey } = kwargs
     const { room } = ws
     if(!room || room.closed) { ws.close(); return }
     room.gameKey = gameKey
-    console.log(`Game of romm '${room.id}' set to '${gameKey}'`)
-    room.sendToJoypads(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
+    console.log(`Game of room '${room.id}' set to '${gameKey}'`)
+    room.sendToPlayers(Consts.MSG_KEYS.START_GAME + JSON.stringify({
       gameKey
     }))
   }
@@ -146,12 +146,12 @@ class GameServer {
     if(!room || room.closed) { ws.close(); return }
     if(ws.type === "game") {
       room.closed = true
-      for(let ws of Object.values(room.joypadWebsockets)) ws.close()
+      for(let ws of Object.values(room.playerWebsockets)) ws.close()
       delete this.rooms[room.id]
       console.log(`Room '${room.id}' closed`)
-    } else if(ws.type === "joypad") {
-      delete room.joypadWebsockets[ws.id]
-      console.log(`Joypad '${ws.id}' left the room '${room.id}'`)
+    } else if(ws.type === "player") {
+      delete room.playerWebsockets[ws.id]
+      console.log(`Player '${ws.id}' left the room '${room.id}'`)
       const msg = Consts.MSG_KEYS.SYNC_PLAYERS + JSON.stringify(room.exportPlayers())
       room.sendToGame(msg)
       room.sendToGame(msg)
@@ -161,7 +161,7 @@ class GameServer {
   handleJoypadInput(ws, body) {
     const { room } = ws
     if(!room || room.closed) { ws.close(); return }
-    room.sendToGame(Consts.MSG_KEYS.INPUT + ws.id + ':' + body)
+    room.sendToGame(Consts.MSG_KEYS.JOYPAD_INPUT + ws.id + ':' + body)
   }
 
   // startGame(key) {
@@ -228,29 +228,26 @@ class Room {
     this.id = id
     this.numPlayer = 0
     this.gameWebsocket = gameWs
-    this.joypadWebsockets = {}
+    this.playerWebsockets = {}
   }
 
   sendToGame(msg) {
     this.gameWebsocket.send(msg)
   }
 
-  sendToJoypads(msg) {
-    for(const jpws of Object.values(this.joypadWebsockets)) {
+  sendToPlayers(msg) {
+    for(const jpws of Object.values(this.playerWebsockets)) {
       jpws.send(msg)
     }
   }
 
   exportPlayers() {
     const res = {}
-    const { joypadWebsockets } = this
-    for(const jpWs of Object.values(joypadWebsockets)) {
-      const { playerName, playerColor } = jpWs
-      if(!playerName) continue
-      res[jpWs.id] = {
-        name: playerName,
-        color: playerColor
-      }
+    const { playerWebsockets } = this
+    for(const jpWs of Object.values(playerWebsockets)) {
+      const { name, color } = jpWs
+      if(!name) continue
+      res[jpWs.id] = { name, color }
     }
     return res
   }

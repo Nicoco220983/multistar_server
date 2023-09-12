@@ -13,9 +13,9 @@ export default Object.freeze({
   MSG_KEY_LENGTH: 3,
   MSG_KEYS: {
     IDENTIFY_GAME: 'IDG',
-    IDENTIFY_JOYPAD: 'IDJ',
-    SET_GAME: 'SGM',
+    IDENTIFY_PLAYER: 'IDP',
+    START_GAME: 'STG',
     SYNC_PLAYERS: "PLA",
-    INPUT: 'INP',
+    JOYPAD_INPUT: 'INP',
   },
 })

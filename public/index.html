@@ -53,7 +53,7 @@
                 const data = evt.data.substring(Consts.MSG_KEY_LENGTH)
                 if(key === Consts.MSG_KEYS.IDENTIFY_GAME) handleGameIdentification(JSON.parse(data))
                 else if(key === Consts.MSG_KEYS.SYNC_PLAYERS) handleSyncPlayers(JSON.parse(data))
-                else if(key === Consts.MSG_KEYS.INPUT) handleInput(data)
+                else if(key === Consts.MSG_KEYS.JOYPAD_INPUT) handleJoypadInput(data)
                 else console.warn("Unknown websocket key", key)
             })
 
@@ -72,7 +72,7 @@
             if(game) game.syncPlayers(players)
         }
 
-        function handleInput(data) {
+        function handleJoypadInput(data) {
             const idx = data.indexOf(':')
             const playerId = data.substring(0, idx)
             const kwargs = JSON.parse(data.substring(idx+1))
@@ -91,7 +91,7 @@
             wrapperEl.innerHTML = ""
             game = src.startGame(wrapperEl, gameWs)
             if(players) game.syncPlayers(players)
-            gameWs.send(Consts.MSG_KEYS.SET_GAME + JSON.stringify({
+            gameWs.send(Consts.MSG_KEYS.START_GAME + JSON.stringify({
                 gameKey,
             }))
         }

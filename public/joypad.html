@@ -78,7 +78,7 @@
 
             joypadWs.addEventListener('open', () => {
                 console.log('Connected to server')
-                joypadWs.send(Consts.MSG_KEYS.IDENTIFY_JOYPAD + JSON.stringify({
+                joypadWs.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify({
                     roomId,
                 }))
             })
@@ -86,8 +86,8 @@
             joypadWs.addEventListener('message', evt => {
                 const key = evt.data.substring(0, Consts.MSG_KEY_LENGTH)
                 const data = evt.data.substring(Consts.MSG_KEY_LENGTH)
-                if(key === Consts.MSG_KEYS.IDENTIFY_JOYPAD) handleIdentifyJoypad(JSON.parse(data))
-                else if(key === Consts.MSG_KEYS.SET_GAME) handleSetGame(JSON.parse(data))
+                if(key === Consts.MSG_KEYS.IDENTIFY_PLAYER) handleIdentifyPlayer(JSON.parse(data))
+                else if(key === Consts.MSG_KEYS.START_GAME) handleStartGame(JSON.parse(data))
                 else if(key === Consts.MSG_KEYS.SYNC_PLAYERS) handleSyncPlayers(JSON.parse(data))
                 else console.warn("Unknown websocket key", key)
             })
@@ -119,10 +119,7 @@
             idEl.querySelector(".join").onclick = () => {
                 player.name = idEl.querySelector(".player_name").value || player.name || "Player"
                 player.color ||= "blue"
-                joypadWs.send(Consts.MSG_KEYS.IDENTIFY_JOYPAD + JSON.stringify({
-                    playerName: player.name,
-                    playerColor: player.color,
-                }))
+                joypadWs.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify(player))
                 initGame()
             }
         }
@@ -135,14 +132,14 @@
             if(gameKey) startJoypad(gameKey)
         }
 
-        function handleIdentifyJoypad(kwargs) {
-            if(kwargs.playerName) {
-                player.name = kwargs.playerName
+        function handleIdentifyPlayer(kwargs) {
+            if(kwargs.name) {
+                player.name = kwargs.name
                 idEl.querySelector(".player_name").placeholder = player.name
             }
         }
 
-        function handleSetGame(kwargs) {
+        function handleStartGame(kwargs) {
             gameKey = kwargs.gameKey
             console.log(`Game set to '${gameKey}'`)
             if(step === "GAME") startJoypad(gameKey)
@@ -160,7 +157,7 @@
             const joypad = await import(`/game/${gameKey}/joypad.mjs`)
             wrapperEl.innerHTML = ""
             const sendInput = data => {
-                joypadWs.send(Consts.MSG_KEYS.INPUT + JSON.stringify(data))
+                joypadWs.send(Consts.MSG_KEYS.JOYPAD_INPUT + JSON.stringify(data))
             }
             joypad.startJoypad(
                 wrapperEl,
