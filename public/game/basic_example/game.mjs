@@ -1,4 +1,4 @@
-const { abs, min, random } = Math
+const { abs, min, atan2, PI, random } = Math
 
 import * as utils from './utils.mjs'
 const { urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
@@ -90,6 +90,7 @@ function newGameScene() {
     } else if(this.step === "GAME") {
       this.mayAddStar(time)
       this.checkHerosStarsHit()
+      this.checkHerosHerosHit()
     }
   }
 
@@ -170,6 +171,19 @@ function newGameScene() {
           star.remove()
           hero.score += 1
           this.scoresPanel.syncScores()
+        }
+      }
+    }
+  }
+
+  scn.checkHerosHerosHit = function() {
+    const heros = this.heros.children
+    for(let i=0; i<heros.length; ++i) {
+      for(let j=i+1; j<heros.length; ++j) {
+        const hero1 = heros[i], hero2 = heros[j]
+        if(checkHit(hero1, hero2)) {
+          hero1.onHeroHit(hero2)
+          hero2.onHeroHit(hero1)
         }
       }
     }
@@ -259,6 +273,24 @@ function newHero(playerId, x, y, name, color) {
       top: this.translation.y - height/2,
       width,
       height,
+    }
+  }
+
+  hero.onHeroHit = function(hero2) {
+    const { x: x1, y: y1 } = this.translation
+    const { x: x2, y: y2 } = hero2.translation
+    const hitAngle = atan2(y2 - y1, x2 - x1) / PI
+    if(hitAngle >= -.25 && hitAngle <= .25) {
+      this.spdX = -abs(this.spdX)
+    }
+    else if(hitAngle > .25 && hitAngle <= .75) {
+      this.spdY = -abs(this.spdY)
+    }
+    else if(hitAngle >= -.75 && hitAngle < -.25) {
+      this.spdY = abs(this.spdY)
+    }
+    else if(hitAngle > .75 || hitAngle < -.75) {
+      this.spdX = abs(this.spdX)
     }
   }
 
