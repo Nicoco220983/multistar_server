@@ -8,9 +8,17 @@
                 margin: 0;
                 height: 100%;
             }
-            .center {
+            .flexcol {
                 display: flex;
                 flex-direction: column;
+                gap: 5px;
+            }
+            .flexrow {
+                display: flex;
+                flex-direction: row;
+                gap: 5px;
+            }
+            .center {
                 align-items: center;
                 justify-content: center;
             }
@@ -26,14 +34,11 @@
                 width: 100%;
                 aspect-ratio: 16 / 9;
             }
-            #menu {
-                padding: 1em;
-            }
         </style>
         <script src="two.min.js"></script>
         <script type="module" src="games-menu.mjs"></script>
     </head>
-    <body class="center">
+    <body class="flexcol center">
         <div id="fullscreen_wrapper" class="center">
             <div id="aspect_ratio_wrapper" class="center"></div>
         </div>

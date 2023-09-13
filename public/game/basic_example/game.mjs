@@ -24,6 +24,7 @@ function startGame(wrapperEl, gameWs) {
 
     Game.roomId = gameWs.roomId
     Game.joypadUrl = gameWs.joypadUrl
+    Game.players = {}
 
     Game.syncPlayers = function(players) {
       this.players = players
@@ -84,54 +85,70 @@ function newGameScene() {
   scn.setStep = function(step) {
     this.step = step
     if(step === "LOADING") {
-      this.loadingTxts = addTo(this, newGroup())
-      addTo(this.loadingTxts, new Two.Text(
-        "LOADING...",
-        WIDTH / 2, HEIGHT / 2, { fill: "white", size: 20 }
-      ))
+      this.addLoadingTexts()
     } else if(step === "INTRO") {
-      this.loadingTxts.remove()
-      this.introTexts = addTo(this, newGroup())
-      const textArgs = { size: 24, fill: "black", alignment: "center", baseline: "top" }
-      addTo(this.introTexts, new Two.Text(
-        "Basic Example",
-        WIDTH / 2, HEIGHT / 3,
-        { ...textArgs, size: 50 }
-      ))
-      addTo(this.introTexts, new Two.Text(
-        "Join the game:",
-        WIDTH / 2, HEIGHT / 2,
-        textArgs
-      ))
-      addTo(this.introTexts, new Two.Text(
-        Game.joypadUrl,
-        WIDTH / 2, HEIGHT / 2 + 36,
-        textArgs
-      ))
+      this.loadingTexts.remove()
+      this.addBackground()
+      scn.stars = addTo(scn, newGroup())
+      scn.heros = addTo(scn, newGroup())
       this.syncPlayers()
+      this.addIntroTexts()
     } else if(step === "GAME") {
       this.introTexts.remove()
     }
   }
-  scn.setStep("LOADING")
+
+  scn.update = function(time) {
+    propagUpdate.call(this, time)
+    if(this.step === "LOADING") {
+      if(checkAllLoadsDone()) this.setStep("INTRO")
+    } else if(this.step === "GAME") {
+      this.mayAddStar(time)
+      this.checkHerosStarsHit()
+    }
+  }
+
+  scn.addLoadingTexts = function() {
+    this.loadingTexts = addTo(this, newGroup())
+    addTo(this.loadingTexts, new Two.Text(
+      "LOADING...",
+      WIDTH / 2, HEIGHT / 2, { fill: "white", size: 20 }
+    ))
+  }
+
+  scn.addBackground = function() {
+    const background = addTo(this, new Two.Sprite(
+      urlAbsPath("assets/background.jpg"),
+      WIDTH / 2, HEIGHT / 2,
+    ))
+    background.scale = 2.5
+  }
+
+  scn.addIntroTexts = function() {
+    this.introTexts = addTo(this, newGroup())
+    const textArgs = { size: 30, fill: "black", alignment: "center", baseline: "top" }
+    addTo(this.introTexts, new Two.Text(
+      "BASIC EXAMPLE",
+      WIDTH / 2, HEIGHT / 3,
+      { ...textArgs, size: 60 }
+    ))
+    addTo(this.introTexts, new Two.Text(
+      "Join the game:",
+      WIDTH / 2, HEIGHT / 2,
+      { ...textArgs, size: 40 }
+    ))
+    addTo(this.introTexts, new Two.Text(
+      Game.joypadUrl,
+      WIDTH / 2, HEIGHT / 2 + 50,
+      textArgs
+    ))
+  }
 
   scn.syncPlayers = function() {
-    if(this.step === "LOADING") return
+    if(!this.heros) return
     for(const playerId in Game.players) if(!this.getHero(playerId)) this.addHero(playerId)
     for(const hero in this.heros.children) if(!Game.players[hero.playerId]) this.rmHero(hero.playerId)
   }
-
-  // background
-  const background = addTo(scn, new Two.Sprite(
-    urlAbsPath("assets/background.jpg"),
-    WIDTH / 2, HEIGHT / 2,
-  ))
-  background.scale = 2.5
-
-  scn.stars = addTo(scn, newGroup())
-  scn.nextStarTime = 0
-
-  scn.heros = addTo(scn, newGroup())
   scn.addHero = function(playerId) {
     addTo(this.heros, newHero(
       playerId,
@@ -150,31 +167,28 @@ function newGameScene() {
     if(hero) hero.remove()
   }
 
-  scn.update = function(time) {
-    propagUpdate.call(this, time)
-    if(this.step === "LOADING") {
-      if(checkAllLoadsDone()) this.setStep("INTRO")
-    } else if(this.step === "GAME") {
-      if(time > this.nextStarTime) {
-        addTo(this.stars, newStar(random() > .5, HEIGHT * random()))
-        this.nextStarTime = time + 1
-      }
-      for(const hero of this.heros.children) {
-        for(const star of this.stars.children) {
-          if(checkHit(hero, star)) {
-            addTo(this, newNotif(
-              (hero.score ? `${hero.score} ` : "") + "+ 1",
-              star.translation.x, star.translation.y - 20
-            ))
-            star.remove()
-            hero.score += 1
-          }
+  scn.nextStarTime = 0
+  scn.mayAddStar = function(time) {
+    if(time > this.nextStarTime) {
+      addTo(this.stars, newStar(random() > .5, HEIGHT * random()))
+      this.nextStarTime = time + 1
+    }
+  }
+
+  scn.checkHerosStarsHit = function() {
+    for(const hero of this.heros.children) {
+      for(const star of this.stars.children) {
+        if(checkHit(hero, star)) {
+          addTo(this, newNotif(
+            (hero.score ? `${hero.score} ` : "") + "+ 1",
+            star.translation.x, star.translation.y - 20
+          ))
+          star.remove()
+          hero.score += 1
         }
       }
     }
   }
-
-  // input
 
   scn.handleInput = function(playerId, kwargs) {
     const hero = this.getHero(playerId)
@@ -183,7 +197,7 @@ function newGameScene() {
     if(this.step === "INTRO") this.setStep("GAME")
   }
 
-  // music.replay()
+  scn.setStep("LOADING")
 
   return scn
 }
@@ -235,6 +249,16 @@ function newHero(playerId, x, y, name, color) {
     }
     if((spdY > 0 && y > HEIGHT - h2) || (spdY < 0 && y < h2)) {
       this.spdY = -spdY
+    }
+  }
+
+  hero.getHitBox = function() {
+    const { width, height } = this
+    return {
+      left: this.translation.x - width/2,
+      top: this.translation.y - height/2,
+      width,
+      height,
     }
   }
 
