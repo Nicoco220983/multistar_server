@@ -159,7 +159,7 @@ function newGameScene() {
         if(checkHit(hero, star)) {
           addTo(this, newNotif(
             (hero.score ? `${hero.score} ` : "") + "+ 1",
-            star.translation.x, star.translation.y - 20
+            star.translation.x, star.translation.y
           ))
           star.remove()
           hero.score += 1
@@ -172,7 +172,9 @@ function newGameScene() {
     const hero = this.getHero(playerId)
     if(!hero) return
     hero.handleJoypadInput(kwargs)
-    this.setHeroReady(hero, true)
+    if(kwargs.ready !== undefined) {
+      this.setHeroReady(hero, kwargs.ready)
+    }
   }
 
   scn.setHeroReady = function(hero, ready) {
@@ -254,8 +256,10 @@ function newHero(playerId, x, y, name, color) {
     }
   }
 
-  hero.handleJoypadInput = function(input) {
-    hero.spdX = abs(hero.spdX) * (input.dir === 0 ? -1 : 1)
+  hero.handleJoypadInput = function(kwargs) {
+    if(kwargs.dir !== undefined) {
+      hero.spdX = abs(hero.spdX) * (kwargs.dir === 0 ? -1 : 1)
+    }
   }
 
   return hero
@@ -313,10 +317,10 @@ function newGroup() {
 }
 
 
-function newNotif(txt, x, y) {
+function newNotif(txt, x, y, textKwargs) {
   const notif = new Two.Text(
     txt, x, y,
-    { size: 20 }
+    { size: 30, ...textKwargs }
   )
   notif.update = function(time) {
     this.translation.y -= 50 / FPS

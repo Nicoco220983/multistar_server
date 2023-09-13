@@ -55,9 +55,8 @@
         const fullscreenActivated  = urlParams.get('fs') !== '0'
 
         let step = "IDENTIFICATION"
-        let joypadWs = null
+        let playerWs = null
         let gameKey = null
-        let player = null
         let players = null
         let joypad = null
 
@@ -68,16 +67,16 @@
 
         function initJoypadWebsocket() {
             const socketProtocol = (window.location.protocol.includes('https')) ? 'wss' : 'ws'
-            joypadWs  = new WebSocket(`${socketProtocol}://${window.location.host}`)
+            playerWs  = new WebSocket(`${socketProtocol}://${window.location.host}`)
 
-            joypadWs.addEventListener('open', () => {
+            playerWs.addEventListener('open', () => {
                 console.log('Connected to server')
-                joypadWs.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify({
+                playerWs.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify({
                     roomId,
                 }))
             })
 
-            joypadWs.addEventListener('message', evt => {
+            playerWs.addEventListener('message', evt => {
                 const key = evt.data.substring(0, Consts.MSG_KEY_LENGTH)
                 const data = evt.data.substring(Consts.MSG_KEY_LENGTH)
                 if(key === Consts.MSG_KEYS.GAME_INPUT) handleGameInput(JSON.parse(data))
@@ -87,9 +86,13 @@
                 else console.warn("Unknown websocket key", key)
             })
 
-            joypadWs.addEventListener('close', handleCloseConnection)
+            playerWs.addEventListener('close', handleCloseConnection)
 
-            joypadWs.addEventListener('error', console.error)
+            playerWs.addEventListener('error', console.error)
+
+            playerWs.sendInput = data => {
+                playerWs.send(Consts.MSG_KEYS.JOYPAD_INPUT + JSON.stringify(data))
+            }
         }
 
         function initIdentificationForm() {
@@ -98,12 +101,13 @@
             gamesMenuEl.style.display = "none"
 
             colorPickerEl.onSelect = color => {
-                player.color = color
+                playerWs.player.color = color
             }
 
             idEl.querySelector(".join").onclick = () => {
+                const { player } = playerWs
                 player.name = idEl.querySelector(".player_name").value || player.name || "Player"
-                joypadWs.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify(player))
+                playerWs.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify(player))
                 initGame()
             }
         }
@@ -117,9 +121,9 @@
         }
 
         function handleIdentifyPlayer(kwargs) {
-            player = kwargs
-            idEl.querySelector(".player_name").placeholder = player.name
-            colorPickerEl.syncColor(player.color)
+            playerWs.player = kwargs
+            idEl.querySelector(".player_name").placeholder = playerWs.player.name
+            colorPickerEl.syncColor(playerWs.player.color)
         }
 
         function handleStartGame(kwargs) {
@@ -143,13 +147,9 @@
         async function startJoypad(gameKey) {
             const src = await import(`/game/${gameKey}/joypad.mjs`)
             wrapperEl.innerHTML = ""
-            const sendInput = data => {
-                joypadWs.send(Consts.MSG_KEYS.JOYPAD_INPUT + JSON.stringify(data))
-            }
             joypad = src.startJoypad(
                 wrapperEl,
-                player,
-                sendInput,
+                playerWs,
             )
         }
 

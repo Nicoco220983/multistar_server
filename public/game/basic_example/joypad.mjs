@@ -9,13 +9,10 @@ const FPS = 60  // hardcoded in Twojs
 // const ICON_SIZE = 50
 const BACKGROUND_COLOR = "#111"
 
-let player = null
 let Joypad = null
 
 
-function startJoypad(wrapperEl, iPlayer, sendInput) {
-
-    player = iPlayer
+function startJoypad(wrapperEl, playerWs) {
 
     Joypad = utils.newTwo(wrapperEl, WIDTH, HEIGHT, {
       backgroundColor: BACKGROUND_COLOR
@@ -25,6 +22,9 @@ function startJoypad(wrapperEl, iPlayer, sendInput) {
       const scn = this.getScene()
       if(scn) scn.handleGameInput(kwargs)
     }
+
+    Joypad.player = playerWs.player
+    Joypad.sendInput = playerWs.sendInput
   
     //pauseGame(true)
   
@@ -60,8 +60,6 @@ function startJoypad(wrapperEl, iPlayer, sendInput) {
       if(!Joypad.paused) scn.update(time)
       pointer.prevIsDown = pointer.isDown
     })
-
-    Joypad.sendInput = sendInput
   
     // document.addEventListener("blur", () => pauseGame(true))
     
@@ -188,8 +186,8 @@ function newArrowButton(dir) {
   res.translation.x = WIDTH / 4 * (dir ? 3 : 1)
   res.translation.y = HEIGHT / 2
   const img = addTo(res, Joypad.makeImageSequence([
-    new Two.Texture(arrowCanvas.get(dir, false, player.color)),
-    new Two.Texture(arrowCanvas.get(dir, true, player.color)),
+    new Two.Texture(arrowCanvas.get(dir, false, Joypad.player.color)),
+    new Two.Texture(arrowCanvas.get(dir, true, Joypad.player.color)),
   ], 0, 0))
   img.scale = min(WIDTH / 2, HEIGHT) / 200 * .8
   res.lastClickTime = -1
