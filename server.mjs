@@ -65,10 +65,11 @@ class GameServer {
         const msg = isBinary ? data : data.toString()
         const key = msg.substring(0, Consts.MSG_KEY_LENGTH)
         const body = msg.substring(Consts.MSG_KEY_LENGTH)
-        if(key === Consts.MSG_KEYS.IDENTIFY_GAME) this.handleIdentifyGame(ws)
+        if(key === Consts.MSG_KEYS.JOYPAD_INPUT) this.handleJoypadInput(ws, body)
+        else if(key === Consts.MSG_KEYS.GAME_INPUT) this.handleGameInput(ws, body)
+        else if(key === Consts.MSG_KEYS.IDENTIFY_GAME) this.handleIdentifyGame(ws)
         else if(key === Consts.MSG_KEYS.IDENTIFY_PLAYER) this.handleIdentifyPlayer(ws, JSON.parse(body))
         else if(key === Consts.MSG_KEYS.START_GAME) this.handleStartGame(ws, JSON.parse(body))
-        else if(key === Consts.MSG_KEYS.JOYPAD_INPUT) this.handleJoypadInput(ws, body)
         else console.warn("Unknown websocket key", key)
       })
     
@@ -155,7 +156,7 @@ class GameServer {
       console.log(`Player '${ws.id}' left the room '${room.id}'`)
       const msg = Consts.MSG_KEYS.SYNC_PLAYERS + JSON.stringify(room.exportPlayers())
       room.sendToGame(msg)
-      room.sendToGame(msg)
+      room.sendToPlayers(msg)
     }
   }
 
@@ -163,6 +164,12 @@ class GameServer {
     const { room } = ws
     if(!room || room.closed) { ws.close(); return }
     room.sendToGame(Consts.MSG_KEYS.JOYPAD_INPUT + ws.id + ':' + body)
+  }
+
+  handleGameInput(ws, body) {
+    const { room } = ws
+    if(!room || room.closed) { ws.close(); return }
+    room.sendToPlayers(Consts.MSG_KEYS.GAME_INPUT + ws.id + ':' + body)
   }
 
   // startGame(key) {

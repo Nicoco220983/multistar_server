@@ -27,10 +27,10 @@
                 width: 500px;
                 height: 500px;
             }
-            #joypad {
+            #joypads {
                 width: 90%;
             }
-            #joypad iframe {
+            #joypads iframe {
                 width: 100%;
                 aspect-ratio: 16 / 9;
             }
@@ -42,7 +42,7 @@
         <div id="fullscreen_wrapper" class="center">
             <div id="aspect_ratio_wrapper" class="center"></div>
         </div>
-        <div id="joypad" class="center"></div>
+        <div id="joypads" class="center" style="display:none"></div>
         <div id="menu" class="center"></div>
     </body>
     <script type="module">
@@ -50,14 +50,14 @@
         import Consts from './consts.mjs'
 
         const urlParams = new URLSearchParams(window.location.search)
-        const showJoypad  = urlParams.get('joypad') === '1'
+        const nbEmbeddedJoypads  = parseInt(urlParams.get('joypad') || '0')
 
         let gameWs = null
         let game = null
         let players = null
 
         const wrapperEl = document.getElementById("aspect_ratio_wrapper")
-        const joypadEl = document.getElementById("joypad")
+        const joypadsEl = document.getElementById("joypads")
         const menuEl = document.getElementById("menu")
 
         function initGameWebsocket() {
@@ -88,7 +88,7 @@
             console.log(`Identified as game for room '${gameWs.roomId}'`)
             gameWs.joypadUrl = new URL(`room/${gameWs.roomId}`, window.location.href)
             console.log(`Joypad URL: ${gameWs.joypadUrl }`)
-            if(showJoypad) initJoypad(gameWs.joypadUrl)
+            for(let i=0; i<nbEmbeddedJoypads; ++i) addEmbeddedJoypad(gameWs.joypadUrl)
         }
 
         function handleSyncPlayers(kwargs) {
@@ -100,17 +100,18 @@
             const idx = data.indexOf(':')
             const playerId = data.substring(0, idx)
             const kwargs = JSON.parse(data.substring(idx+1))
-            if(game) game.handleInput(playerId, kwargs)
+            if(game) game.handleJoypadInput(playerId, kwargs)
         }
 
         function handleCloseConnection() {
             wrapperEl.innerHTML = "<p>Deconnected from server :(</p>"
         }
 
-        function initJoypad(joypadUrl) {
+        function addEmbeddedJoypad(joypadUrl) {
             const iframeEl = document.createElement("iframe")
             iframeEl.src = `${joypadUrl}?fs=0`
-            joypadEl.appendChild(iframeEl)
+            joypadsEl.appendChild(iframeEl)
+            joypadsEl.style.display = ""
         }
 
         function initGamesMenu() {

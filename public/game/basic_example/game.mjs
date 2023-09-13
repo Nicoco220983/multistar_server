@@ -32,9 +32,9 @@ function startGame(wrapperEl, gameWs) {
       if(scn) scn.syncPlayers()
     }
 
-    Game.handleInput = function(playerId, kwargs) {
+    Game.handleJoypadInput = function(playerId, kwargs) {
       const scn = this.getScene()
-      if(scn) scn.handleInput(playerId, kwargs)
+      if(scn) scn.handleJoypadInput(playerId, kwargs)
     }
   
     Game.gameScns = newGroup()
@@ -83,6 +83,7 @@ function newGameScene() {
   const scn = newGroup()
 
   scn.setStep = function(step) {
+    if(step === this.step) return console.warning(`Step is already '${step}'`)
     this.step = step
     if(step === "LOADING") {
       this.addLoadingTexts()
@@ -190,11 +191,22 @@ function newGameScene() {
     }
   }
 
-  scn.handleInput = function(playerId, kwargs) {
+  scn.handleJoypadInput = function(playerId, kwargs) {
     const hero = this.getHero(playerId)
     if(!hero) return
-    hero.handleInput(kwargs)
-    if(this.step === "INTRO") this.setStep("GAME")
+    hero.handleJoypadInput(kwargs)
+    this.setHeroReady(hero, true)
+  }
+
+  scn.setHeroReady = function(hero, ready) {
+    hero.ready = ready
+    if(this.step === "INTRO") {
+      let allReady = true
+      for(const h of this.heros.children) {
+        allReady &= h.ready
+      }
+      if(allReady) this.setStep("GAME")
+    }
   }
 
   scn.setStep("LOADING")
@@ -262,7 +274,7 @@ function newHero(playerId, x, y, name, color) {
     }
   }
 
-  hero.handleInput = function(input) {
+  hero.handleJoypadInput = function(input) {
     hero.spdX = abs(hero.spdX) * (input.dir === 0 ? -1 : 1)
   }
 

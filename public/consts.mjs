@@ -16,7 +16,8 @@ export default Object.freeze({
     IDENTIFY_PLAYER: 'IDP',
     START_GAME: 'STG',
     SYNC_PLAYERS: "PLA",
-    JOYPAD_INPUT: 'INP',
+    JOYPAD_INPUT: 'JPI',
+    GAME_INPUT: 'GMI',
   },
 
   PLAYER_COLORS: ["red","blue","yellow","green","purple","orange"],

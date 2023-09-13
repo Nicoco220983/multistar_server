@@ -20,6 +20,11 @@ function startJoypad(wrapperEl, iPlayer, sendInput) {
     Joypad = utils.newTwo(wrapperEl, WIDTH, HEIGHT, {
       backgroundColor: BACKGROUND_COLOR
     })
+
+    Joypad.handleGameInput = function(kwargs) {
+      const scn = this.getScene()
+      if(scn) scn.handleGameInput(kwargs)
+    }
   
     //pauseGame(true)
   
@@ -141,6 +146,10 @@ function newJoypadScene() {
 
   // music.replay()
 
+  scn.handleGameInput = function(kwargs) {
+    
+  }
+
   return scn
 }
 
@@ -158,7 +167,6 @@ const arrowCanvas = {
     return this[key]
   }
 }
-
 
 
 function newArrowButton(dir) {

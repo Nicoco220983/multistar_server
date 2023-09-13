@@ -59,6 +59,7 @@
         let gameKey = null
         let player = null
         let players = null
+        let joypad = null
 
         const idEl = document.getElementById("identification")
         const colorPickerEl = document.getElementById("color_picker")
@@ -79,7 +80,8 @@
             joypadWs.addEventListener('message', evt => {
                 const key = evt.data.substring(0, Consts.MSG_KEY_LENGTH)
                 const data = evt.data.substring(Consts.MSG_KEY_LENGTH)
-                if(key === Consts.MSG_KEYS.IDENTIFY_PLAYER) handleIdentifyPlayer(JSON.parse(data))
+                if(key === Consts.MSG_KEYS.GAME_INPUT) handleGameInput(JSON.parse(data))
+                else if(key === Consts.MSG_KEYS.IDENTIFY_PLAYER) handleIdentifyPlayer(JSON.parse(data))
                 else if(key === Consts.MSG_KEYS.START_GAME) handleStartGame(JSON.parse(data))
                 else if(key === Consts.MSG_KEYS.SYNC_PLAYERS) handleSyncPlayers(JSON.parse(data))
                 else console.warn("Unknown websocket key", key)
@@ -130,12 +132,16 @@
             players = kwargs
         }
 
+        function handleGameInput(kwargs) {
+            if(joypad) joypad.handleGameInput(kwargs)
+        }
+
         function handleCloseConnection() {
             wrapperEl.innerHTML = "<p>Deconnected from server :(</p>"
         }
 
         async function startJoypad(gameKey) {
-            const joypad = await import(`/game/${gameKey}/joypad.mjs`)
+            joypad = await import(`/game/${gameKey}/joypad.mjs`)
             wrapperEl.innerHTML = ""
             const sendInput = data => {
                 joypadWs.send(Consts.MSG_KEYS.JOYPAD_INPUT + JSON.stringify(data))
