@@ -23,14 +23,20 @@ function startGame(wrapperEl, gameWs) {
     Game.players = {}
 
     Game.syncPlayers = function(players) {
-      this.players = players
-      const scn = this.getScene()
-      if(scn) scn.syncPlayers()
+      try {
+        this.players = players
+        this.getScene().syncPlayers()
+      } catch(err) {
+        console.log(err)
+      }
     }
 
     Game.handleJoypadInput = function(playerId, kwargs) {
-      const scn = this.getScene()
-      if(scn) scn.handleJoypadInput(playerId, kwargs)
+      try {
+        this.getScene().handleJoypadInput(playerId, kwargs)
+      } catch(err) {
+        console.log(err)
+      }
     }
   
     Game.gameScns = newGroup()
@@ -125,7 +131,7 @@ function newGameScene() {
   scn.syncPlayers = function() {
     if(!this.heros) return
     for(const playerId in Game.players) if(!this.getHero(playerId)) this.addHero(playerId)
-    for(const hero in this.heros.children) if(!Game.players[hero.playerId]) this.rmHero(hero.playerId)
+    for(const hero of this.heros.children) if(!Game.players[hero.playerId]) this.rmHero(hero.playerId)
   }
   scn.addHero = function(playerId) {
     addTo(this.heros, newHero(
@@ -141,8 +147,7 @@ function newGameScene() {
     return res ? res[0] : null
   }
   scn.rmHero = function(playerId) {
-    const hero = this.getHero(playerId)
-    if(hero) hero.remove()
+    this.getHero(playerId).remove()
   }
 
   scn.nextStarTime = 0
@@ -170,7 +175,6 @@ function newGameScene() {
 
   scn.handleJoypadInput = function(playerId, kwargs) {
     const hero = this.getHero(playerId)
-    if(!hero) return
     hero.handleJoypadInput(kwargs)
     if(kwargs.ready !== undefined) {
       this.setHeroReady(hero, kwargs.ready)

@@ -19,8 +19,11 @@ function startJoypad(wrapperEl, playerWs) {
     })
 
     Joypad.handleGameInput = function(kwargs) {
-      const scn = this.getScene()
-      if(scn) scn.handleGameInput(kwargs)
+      try {
+        this.getScene().handleGameInput(kwargs)
+      } catch(err) {
+        console.log(err)
+      }
     }
 
     Joypad.player = playerWs.player
