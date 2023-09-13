@@ -1,4 +1,4 @@
-const { abs, random } = Math
+const { abs, min, random } = Math
 
 import * as utils from './utils.mjs'
 const { urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
@@ -73,12 +73,13 @@ function newGameScene() {
     } else if(step === "INTRO") {
       this.loadingTexts.remove()
       this.addBackground()
-      scn.stars = addTo(scn, newGroup())
-      scn.heros = addTo(scn, newGroup())
+      this.stars = addTo(this, newGroup())
+      this.heros = addTo(this, newGroup())
       this.syncPlayers()
       this.addIntroTexts()
     } else if(step === "GAME") {
       this.introTexts.remove()
+      this.scoresPanel = newScoresPanel(this.heros.children, 5)
     }
   }
 
@@ -168,6 +169,7 @@ function newGameScene() {
           ))
           star.remove()
           hero.score += 1
+          this.scoresPanel.syncScores()
         }
       }
     }
@@ -297,6 +299,54 @@ function newStar(dir, y) {
   }
 
   return star
+}
+
+function newScoresPanel(heros, maxNbScores) {
+  const panel = newGroup()
+  panel.nbScores = min(maxNbScores, heros.length)
+  panel.heros = heros
+
+  panel.translation.x = 10
+  panel.translation.y = 10
+  panel.width = 160
+  panel.height = (panel.nbScores - 1) * 25 + 20 * 2
+
+  const background = addTo(panel, new Two.Rectangle(panel.width/2, panel.height/2, panel.width, panel.height))
+  background.fill = 'rgba(0, 0, 0, 0.2)'
+
+  panel.scoreTexts = addTo(panel, newGroup())
+  for(let i=0; i<panel.nbScores; ++i) {
+    addTo(panel.scoreTexts, new Two.Text(
+      "",
+      panel.width/2, 20 + i * 25,
+      { fill: "black", size: 24 }
+    ))
+  }
+
+  panel.syncScores = function() {
+    const sortedHeros = [...this.heros]
+    sortedHeros.sort((h1, h2) => {
+      if(h1.score > h2.score) return -1
+      if(h1.score < h2.score) return 1
+      const p1 = Game.players[h1.playerId]
+      const p2 = Game.players[h1.playerId]
+      if(p1.name > p2.name) return -1
+      if(p1.name < p2.name) return 1
+      return 0
+    })
+    for(let i=0; i<this.nbScores; ++i) {
+      let txt = ""
+      if(i < sortedHeros.length) {
+        const hero = sortedHeros[i]
+        const player = Game.players[hero.playerId]
+        txt = `${player.name}: ${hero.score}`
+      }
+      this.scoreTexts.children[i].value = txt
+    }
+  }
+  panel.syncScores()
+
+  return panel
 }
 
 
