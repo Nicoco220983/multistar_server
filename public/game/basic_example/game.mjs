@@ -64,6 +64,12 @@ function startGame(wrapperEl, gameWs) {
 function newGameScene() {
 
   const scn = newGroup()
+  scn.notifs = addTo(scn, newGroup())
+
+  scn.background = addTo(scn, newGroup())
+  scn.stars = addTo(scn, newGroup())
+  scn.heros = addTo(scn, newGroup())
+  scn.notifs = addTo(scn, newGroup())
 
   scn.setStep = function(step) {
     if(step === this.step) return console.warning(`Step is already '${step}'`)
@@ -73,29 +79,36 @@ function newGameScene() {
     } else if(step === "INTRO") {
       this.loadingTexts.remove()
       this.addBackground()
-      this.stars = addTo(this, newGroup())
-      this.heros = addTo(this, newGroup())
       this.syncPlayers()
       this.addIntroTexts()
     } else if(step === "GAME") {
       this.introTexts.remove()
       this.scoresPanel = newScoresPanel(this.heros.children, 5)
     }
+    // else if(step === "VICTORY") {
+      //this.addVictory
+    //}
   }
 
   scn.update = function(time) {
-    propagUpdate.call(this, time)
-    if(this.step === "LOADING") {
+    const { step } = this
+    if(step === "LOADING") {
       if(checkAllLoadsDone()) this.setStep("INTRO")
-    } else if(this.step === "GAME") {
+    }
+    if(step === "INTRO" || step === "GAME") {
+      this.stars.update(time)
+      this.heros.update(time)
+    }
+    if(step === "GAME") {
       this.mayAddStar(time)
       this.checkHerosStarsHit()
       this.checkHerosHerosHit()
     }
+    this.notifs.update(time)
   }
 
   scn.addLoadingTexts = function() {
-    this.loadingTexts = addTo(this, newGroup())
+    this.loadingTexts = addTo(this.notifs, newGroup())
     addTo(this.loadingTexts, new Two.Text(
       "LOADING...",
       WIDTH / 2, HEIGHT / 2, { fill: "white", size: 20 }
@@ -103,7 +116,7 @@ function newGameScene() {
   }
 
   scn.addBackground = function() {
-    const background = addTo(this, new Two.Sprite(
+    const background = addTo(this.background, new Two.Sprite(
       urlAbsPath("assets/background.jpg"),
       WIDTH / 2, HEIGHT / 2,
     ))
@@ -111,7 +124,7 @@ function newGameScene() {
   }
 
   scn.addIntroTexts = function() {
-    this.introTexts = addTo(this, newGroup())
+    this.introTexts = addTo(this.notifs, newGroup())
     const textArgs = { size: 30, fill: "black", alignment: "center", baseline: "top" }
     addTo(this.introTexts, new Two.Text(
       "BASIC EXAMPLE",
@@ -131,7 +144,7 @@ function newGameScene() {
   }
 
   scn.syncPlayers = function() {
-    if(!this.heros) return
+    if(this.step === "LOADING") return
     for(const playerId in Game.players) if(!this.getHero(playerId)) this.addHero(playerId)
     for(const hero of this.heros.children) if(!Game.players[hero.playerId]) this.rmHero(hero.playerId)
   }
@@ -140,8 +153,6 @@ function newGameScene() {
       playerId,
       (.25 + .5 * random()) * WIDTH,
       (.25 + .5 * random()) * HEIGHT,
-      Game.players[playerId].name,
-      Game.players[playerId].color
     ))
   }
   scn.getHero = function(playerId) {
@@ -164,9 +175,10 @@ function newGameScene() {
     for(const hero of this.heros.children) {
       for(const star of this.stars.children) {
         if(checkHit(hero, star)) {
-          addTo(this, newNotif(
+          addTo(this.notifs, newNotif(
             (hero.score ? `${hero.score} ` : "") + "+ 1",
-            star.translation.x, star.translation.y
+            star.translation.x, star.translation.y,
+            { fill: "gold" }
           ))
           star.remove()
           hero.score += 1
@@ -187,6 +199,20 @@ function newGameScene() {
         }
       }
     }
+  }
+
+  scn.addVictoryTexts = function() {
+    const txtArgs = { fill: "black", size: 20 }
+    this.victoryTexts = addTo(this.notifs, newGroup())
+    addTo(this.victoryTexts, new Two.Text(
+      "VICTORY !",
+      WIDTH / 2, HEIGHT / 3,
+      { ...txtArgs, size: 30 }
+    ))
+    addTo(this.victoryTexts, new Two.Text(
+      `${player.name} Won !`,
+      WIDTH / 2, HEIGHT / 2
+    ))
   }
 
   scn.handleJoypadInput = function(playerId, kwargs) {
@@ -230,9 +256,11 @@ const heroCanvas = {
 }
 
 
-function newHero(playerId, x, y, name, color) {
+function newHero(playerId, x, y) {
   const hero = newGroup()
   hero.playerId = playerId
+  const player = Game.players[playerId]
+  const { name, color } = player
 
   hero.translation.x = x
   hero.translation.y = y
