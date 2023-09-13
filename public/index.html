@@ -81,6 +81,10 @@
             gameWs.addEventListener('close', handleCloseConnection)
 
             gameWs.addEventListener('error', console.error)
+
+            gameWs.sendInput = data => {
+                gameWs.send(Consts.MSG_KEYS.GAME_INPUT + JSON.stringify(data))
+            }
         }
 
         function handleGameIdentification(kwargs) {

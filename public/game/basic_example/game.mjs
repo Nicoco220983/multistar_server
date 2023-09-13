@@ -6,7 +6,6 @@ const { urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
 const WIDTH = 800
 const HEIGHT = 600
 const FPS = 60  // hardcoded in Twojs
-// const ICON_SIZE = 30
 const BACKGROUND_COLOR = "#111"
 
 let Game = null
@@ -17,13 +16,10 @@ function startGame(wrapperEl, gameWs) {
     Game = utils.newTwo(wrapperEl, WIDTH, HEIGHT, {
       backgroundColor: BACKGROUND_COLOR
     })
-  
-    //pauseGame(true)
-  
-    // const pointer = newPointer(Game)
 
     Game.roomId = gameWs.roomId
     Game.joypadUrl = gameWs.joypadUrl
+    Game.sendInput = gameWs.sendInput
     Game.players = {}
 
     Game.syncPlayers = function(players) {
@@ -47,30 +43,11 @@ function startGame(wrapperEl, gameWs) {
     }
     Game.addScene(newGameScene())
   
-    // const icons = newGroup()
-    // const fullscreenIcon = addTo(icons, newFullscreenIcon(Game, {
-    //   x: WIDTH - ICON_SIZE*3/4,
-    //   y: ICON_SIZE*3/4,
-    //   size: ICON_SIZE,
-    // }))
-  
-    // pointer.prevIsDown = false
     Game.bind("update", (frameCount, timeDelta) => {
       const time = frameCount / FPS
       const gameScn = Game.getScene()
-      // if(pointer.isDown) {
-      //   // pauseGame(false)
-      //   if(collide(fullscreenIcon, pointer)) {
-      //     if(!pointer.prevIsDown) fullscreenIcon.click()
-      //   } else {
-      //     gameScn.click(pointer)
-      //   }
-      // }
       if(!Game.paused) gameScn.update(time)
-      // pointer.prevIsDown = pointer.isDown
     })
-  
-    // document.addEventListener("blur", () => pauseGame(true))
     
     Game.play()
 
@@ -205,7 +182,10 @@ function newGameScene() {
       for(const h of this.heros.children) {
         allReady &= h.ready
       }
-      if(allReady) this.setStep("GAME")
+      if(allReady) {
+        this.setStep("GAME")
+        Game.sendInput({ step: "GAME" })
+      }
     }
   }
 

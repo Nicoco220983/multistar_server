@@ -169,7 +169,7 @@ class GameServer {
   handleGameInput(ws, body) {
     const { room } = ws
     if(!room || room.closed) { ws.close(); return }
-    room.sendToPlayers(Consts.MSG_KEYS.GAME_INPUT + ws.id + ':' + body)
+    room.sendToPlayers(Consts.MSG_KEYS.GAME_INPUT + body)
   }
 
   // startGame(key) {

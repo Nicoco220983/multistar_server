@@ -66,6 +66,8 @@ function startJoypad(wrapperEl, iPlayer, sendInput) {
     // document.addEventListener("blur", () => pauseGame(true))
     
     Joypad.play()
+
+    return Joypad
 }
 
 
@@ -74,6 +76,7 @@ function newJoypadScene() {
   const scn = newGroup()
 
   scn.setStep = function(step) {
+    if(step === this.step) return console.warning(`Step is already '${step}'`)
     this.step = step
     if(step === "LOADING") {
       this.loadingTxts = addTo(this, newGroup())
@@ -81,11 +84,14 @@ function newJoypadScene() {
         "LOADING...",
         WIDTH / 2, HEIGHT / 2, { fill: "white", size: 20 }
       ))
-    } else if(step === "JOYPAD") {
+    } else if(step === "INTRO") {
       this.loadingTxts.remove()
-      this.buttons = addTo(this, newGroup())
-      addTo(this.buttons, newArrowButton(0))
-      addTo(this.buttons, newArrowButton(1))
+      this.arrowButtons = addTo(this, newGroup())
+      addTo(this.arrowButtons, newArrowButton(0))
+      addTo(this.arrowButtons, newArrowButton(1))
+      this.readyButton = addTo(this, newReadyButton(WIDTH/2, 75))
+    } else if(step === "JOYPAD") {
+      this.readyButton.remove()
     }
   }
   scn.setStep("LOADING")
@@ -109,8 +115,14 @@ function newJoypadScene() {
   // range(3).forEach(i => newHeart(scn, i+1))
 
   scn.click = function(pointer) {
-    if(this.step === "JOYPAD") {
-      for(const button of this.buttons.children) {
+    if(this.step === "INTRO") {
+      if(checkHit(pointer, this.readyButton)) {
+        this.readyButton.click(pointer)
+        return
+      }
+    }
+    if(this.step === "INTRO" || this.step === "JOYPAD") {
+      for(const button of this.arrowButtons.children) {
         if(checkHit(pointer, button)) button.click(pointer)
       }
     }
@@ -119,7 +131,7 @@ function newJoypadScene() {
   scn.update = function(time) {
     propagUpdate.call(this, time)
     if(this.step === "LOADING") {
-      if(checkAllLoadsDone()) this.setStep("JOYPAD")
+      if(checkAllLoadsDone()) this.setStep("INTRO")
     }
   }
   //   if(scn.step === "GAME") {
@@ -147,7 +159,9 @@ function newJoypadScene() {
   // music.replay()
 
   scn.handleGameInput = function(kwargs) {
-    
+    if(kwargs.step === "GAME") {
+      this.setStep("JOYPAD")
+    }
   }
 
   return scn
@@ -196,6 +210,25 @@ function newArrowButton(dir) {
     if(!pointer.prevIsDown) Joypad.sendInput({ dir })
   }
   return res
+}
+
+
+function newReadyButton(x, y) {
+  const button = new Two.Sprite(
+    urlAbsPath("assets/ready_buttons.png"),
+    x, y,
+    2, 1,
+  )
+  button.scale = 250 / 250
+  button.ready = false
+  button.click = function(pointer) {
+    if(!pointer.prevIsDown) {
+      this.ready = !this.ready
+      this.index = this.ready ? 1 : 0
+      Joypad.sendInput({ ready: this.ready })
+    }
+  }
+  return button
 }
 
 

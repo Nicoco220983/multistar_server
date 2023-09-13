@@ -141,12 +141,12 @@
         }
 
         async function startJoypad(gameKey) {
-            joypad = await import(`/game/${gameKey}/joypad.mjs`)
+            const src = await import(`/game/${gameKey}/joypad.mjs`)
             wrapperEl.innerHTML = ""
             const sendInput = data => {
                 joypadWs.send(Consts.MSG_KEYS.JOYPAD_INPUT + JSON.stringify(data))
             }
-            joypad.startJoypad(
+            joypad = src.startJoypad(
                 wrapperEl,
                 player,
                 sendInput,
