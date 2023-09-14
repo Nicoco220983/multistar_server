@@ -8,7 +8,8 @@ const HEIGHT = 600
 const FPS = 60  // hardcoded in Twojs
 const BACKGROUND_COLOR = "#111"
 
-const VICTORY_SCORE = 1
+const HERO_PARALYSIS_DUR = 2
+const VICTORY_SCORE = 20
 
 let Game = null
 
@@ -41,7 +42,7 @@ function startGame(wrapperEl, gameWs) {
       }
     }
   
-    Game.gameScns = newGroup()
+    Game.gameScns = addTo(Game, newGroup())
     Game.getScene = () => Game.gameScns.children[0]
     Game.addScene = function(scn) {
       const prevScn = this.getScene()
@@ -70,6 +71,7 @@ function newGameScene() {
 
   scn.background = addTo(scn, newGroup())
   scn.stars = addTo(scn, newGroup())
+  scn.monsters = addTo(scn, newGroup())
   scn.heros = addTo(scn, newGroup())
   scn.notifs = addTo(scn, newGroup())
 
@@ -85,13 +87,11 @@ function newGameScene() {
       this.addIntroTexts()
     } else if(step === "GAME") {
       this.introTexts.remove()
-      this.scoresPanel = newScoresPanel(this.heros.children, 5)
+      this.scoresPanel = addTo(this.notifs, newScoresPanel(this.heros.children, 5))
       Game.sendInput({ step: "GAME" })
     } else if(step === "VICTORY") {
       this.addVictoryTexts()
       Game.sendInput({ step: "VICTORY" })
-    } else if(step === "VICTORY") {
-      this.resetReadys()
     }
   }
 
@@ -101,12 +101,15 @@ function newGameScene() {
       if(checkAllLoadsDone()) this.setStep("INTRO")
     }
     if(step === "INTRO" || step === "GAME") {
+      this.monsters.update(time)
       this.stars.update(time)
       this.heros.update(time)
     }
     if(step === "GAME") {
       this.mayAddStar(time)
-      this.checkHerosStarsHit()
+      this.mayAddMonster(time)
+      this.checkHerosStarsHit(time)
+      this.checkHerosMonstersHit(time)
       this.checkHerosHerosHit()
     }
     this.notifs.update(time)
@@ -176,22 +179,42 @@ function newGameScene() {
     }
   }
 
-  scn.checkHerosStarsHit = function() {
+  scn.nextMonsterTime = 0
+  scn.mayAddMonster = function(time) {
+    if(time > this.nextMonsterTime) {
+      addTo(this.monsters, newMonster(random() > .5, HEIGHT * random()))
+      this.nextMonsterTime = time + 5
+    }
+  }
+
+  scn.checkHerosStarsHit = function(time) {
     for(const hero of this.heros.children) {
-      for(const star of this.stars.children) {
-        if(checkHit(hero, star)) {
-          addTo(this.notifs, newNotif(
-            (hero.score ? `${hero.score} ` : "") + "+ 1",
-            star.translation.x, star.translation.y,
-            { fill: "gold" }
-          ))
-          star.remove()
-          hero.score += 1
-          this.scoresPanel.syncScores()
-          if(hero.score >= VICTORY_SCORE) {
-            this.winnerHero = hero
-            this.setStep("VICTORY")
+      if(!hero.isParalysed(time)) {
+        for(const star of this.stars.children) {
+          if(checkHit(hero, star)) {
+            addTo(this.notifs, newNotif(
+              (hero.score ? `${hero.score} ` : "") + "+ 1",
+              star.translation.x, star.translation.y,
+              { fill: "gold" }
+            ))
+            star.remove()
+            hero.score += 1
+            this.scoresPanel.syncScores()
+            if(hero.score >= VICTORY_SCORE) {
+              this.winnerHero = hero
+              this.setStep("VICTORY")
+            }
           }
+        }
+      }
+    }
+  }
+
+  scn.checkHerosMonstersHit = function(time) {
+    for(const hero of this.heros.children) {
+      for(const monster of this.monsters.children) {
+        if(checkHit(hero, monster)) {
+          hero.onMonsterHit(time)
         }
       }
     }
@@ -230,25 +253,20 @@ function newGameScene() {
     const hero = this.getHero(playerId)
     hero.handleJoypadInput(kwargs)
     if(kwargs.ready !== undefined) {
-      this.setHeroReady(hero, kwargs.ready)
+      if(this.step === "INTRO") this.setHeroReady(hero, kwargs.ready)
+    }
+    if(kwargs.restart) {
+      if(this.step === "VICTORY") this.restart()
     }
   }
 
   scn.setHeroReady = function(hero, ready) {
     hero.ready = ready
-    if(this.step === "INTRO" || this.step === "VICTORY") {
+    if(this.step === "INTRO") {
       let allReady = true
-      for(const h of this.heros.children) {
-        allReady &= h.ready
-      }
-      if(allReady) {
-        if(this.step === "INTRO") this.setStep("GAME")
-        else if(this.step === "VICTORY") this.restart()
-      }
+      for(const h of this.heros.children) allReady &= h.ready
+      if(allReady) this.setStep("GAME")
     }
-  }
-  scn.resetReadys = function() {
-    this.heros.children.forEach(h => h.ready = false)
   }
 
   scn.restart = function() {
@@ -287,6 +305,7 @@ function newHero(playerId, x, y) {
   hero.spdX = 200 * (random() > .5 ? 1 : -1)
   hero.spdY = 200 * (random() > .5 ? 1 : -1)
   hero.score = 0
+  hero.paralysisEndTime = 0
 
   const img = addTo(hero, new Two.ImageSequence([
     new Two.Texture(heroCanvas.get(color)),
@@ -300,16 +319,21 @@ function newHero(playerId, x, y) {
   ))
 
   hero.update = function(time) {
-    this.translation.x += this.spdX / FPS
-    this.translation.y += this.spdY/ FPS
-    const { x, y } = this.translation
-    const { spdX, spdY } = this
-    const w2 = this.width / 2, h2 = this.height / 2
-    if((spdX > 0 && x > WIDTH - w2) || (spdX < 0 && x < w2)) {
-      this.spdX = -spdX
-    }
-    if((spdY > 0 && y > HEIGHT - h2) || (spdY < 0 && y < h2)) {
-      this.spdY = -spdY
+    if(!this.isParalysed(time)) {
+      this.visible = true
+      this.translation.x += this.spdX / FPS
+      this.translation.y += this.spdY/ FPS
+      const { x, y } = this.translation
+      const { spdX, spdY } = this
+      const w2 = this.width / 2, h2 = this.height / 2
+      if((spdX > 0 && x > WIDTH - w2) || (spdX < 0 && x < w2)) {
+        this.spdX = -spdX
+      }
+      if((spdY > 0 && y > HEIGHT - h2) || (spdY < 0 && y < h2)) {
+        this.spdY = -spdY
+      }
+    } else {
+      this.visible = (time * 4) % 1 > .5
     }
   }
 
@@ -341,6 +365,15 @@ function newHero(playerId, x, y) {
     }
   }
 
+  hero.onMonsterHit = function(time) {
+    if(this.isParalysed()) return
+    this.paralysisEndTime = time + HERO_PARALYSIS_DUR
+  }
+
+  hero.isParalysed = function(time) {
+    return time < this.paralysisEndTime
+  }
+
   hero.handleJoypadInput = function(kwargs) {
     if(kwargs.dir !== undefined) {
       hero.spdX = abs(hero.spdX) * (kwargs.dir === 0 ? -1 : 1)
@@ -370,14 +403,43 @@ function newStar(dir, y) {
     const width = this.width * .4
     const height = this.height * .4
     return {
-      left: star.translation.x - width/2,
-      top: star.translation.y - height/2,
+      left: this.translation.x - width/2,
+      top: this.translation.y - height/2,
       width,
       height,
     }
   }
 
   return star
+}
+
+function newMonster(dir, y) {
+  const monster = new Two.Sprite(
+    urlAbsPath("assets/monster.png"),
+    dir ? WIDTH + 50 : -50, y
+  )
+  monster.width = monster.height = 80
+  monster.scale = 80 / 50
+
+  monster.spdX = dir ? -100 : 100
+
+  monster.update = function(time) {
+    this.translation.x += this.spdX / FPS
+    if((this.x < -50 && this.spdX < 0) || (this.x > WIDTH + 50 && this.spdX > 0)) this.remove()
+  }
+
+  monster.getHitBox = function() {
+    const width = this.width * .7
+    const height = this.height * .7
+    return {
+      left: this.translation.x - width/2,
+      top: this.translation.y - height/2,
+      width,
+      height,
+    }
+  }
+
+  return monster
 }
 
 function newScoresPanel(heros, maxNbScores) {
@@ -388,7 +450,7 @@ function newScoresPanel(heros, maxNbScores) {
   panel.translation.x = 10
   panel.translation.y = 10
   panel.width = 160
-  panel.height = (panel.nbScores - 1) * 25 + 20 * 2
+  panel.height = (panel.nbScores) * 25 + 15
 
   const background = addTo(panel, new Two.Rectangle(panel.width/2, panel.height/2, panel.width, panel.height))
   background.fill = 'rgba(0, 0, 0, 0.2)'
@@ -444,7 +506,7 @@ function propagUpdate(time) {
 
 
 function newGroup() {
-  const group = Game.makeGroup()
+  const group = new Two.Group()
   group.update = propagUpdate
   return group
 }

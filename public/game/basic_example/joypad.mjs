@@ -93,8 +93,6 @@ function newJoypadScene() {
       this.readyButton = addTo(this, newReadyButton(WIDTH/2, 75))
     } else if(step === "GAME") {
       this.readyButton.remove()
-    } else if(step === "VICTORY") {
-      this.readyButton = null
     }
   }
   scn.setStep("LOADING")
@@ -119,7 +117,7 @@ function newJoypadScene() {
 
   scn.click = function(pointer) {
     const { step } = this
-    if(step === "INTRO" || step === "VICTORY") {
+    if(step === "INTRO") {
       if(checkHit(pointer, this.readyButton)) {
         this.readyButton.click(pointer)
         return
@@ -130,6 +128,12 @@ function newJoypadScene() {
         if(checkHit(pointer, button)) button.click(pointer)
       }
     }
+    if(step === "VICTORY") {
+      if(this.restartButton && checkHit(pointer, this.restartButton)) {
+        this.restartButton.click(pointer)
+        return
+      }
+    }
   }
 
   scn.update = function(time) {
@@ -138,9 +142,9 @@ function newJoypadScene() {
       if(checkAllLoadsDone()) this.setStep("INTRO")
     }
     if(this.step === "VICTORY") {
-      this.timeForReadyButton ||= time + 3
-      if(!this.readyButton && time > this.timeForReadyButton) {
-        this.readyButton = addTo(this, newReadyButton(WIDTH/2, 75))
+      this.timeForRestartButton ||= time + 3
+      if(!this.restartButton && time > this.timeForRestartButton) {
+        this.restartButton = addTo(this, newRestartButton(WIDTH/2, 75))
       }
     }
   }
@@ -243,6 +247,21 @@ function newReadyButton(x, y) {
       this.ready = !this.ready
       this.index = this.ready ? 1 : 0
       Joypad.sendInput({ ready: this.ready })
+    }
+  }
+  return button
+}
+
+
+function newRestartButton(x, y) {
+  const button = new Two.Sprite(
+    urlAbsPath("assets/restart_button.png"),
+    x, y,
+  )
+  button.scale = 250 / 250
+  button.click = function(pointer) {
+    if(!pointer.prevIsDown) {
+      Joypad.sendInput({ restart: true })
     }
   }
   return button
