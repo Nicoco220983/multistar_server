@@ -85,10 +85,12 @@ function newGameScene() {
       this.addBackground()
       this.syncPlayers()
       this.addIntroTexts()
-    } else if(step === "GAME") {
+    } else if(step === "COUNTDOWN") {
       this.introTexts.remove()
-      this.scoresPanel = addTo(this.notifs, newScoresPanel(this.heros.children, 5))
+      addTo(this.notifs, newCountDown(3, () => this.setStep("GAME")))
       Game.sendInput({ step: "GAME" })
+    } else if(step === "GAME") {
+      this.scoresPanel = addTo(this.notifs, newScoresPanel(this.heros.children, 5))
     } else if(step === "VICTORY") {
       this.addVictoryTexts()
       Game.sendInput({ step: "VICTORY" })
@@ -100,12 +102,12 @@ function newGameScene() {
     if(step === "LOADING") {
       if(checkAllLoadsDone()) this.setStep("INTRO")
     }
-    if(step === "INTRO" || step === "GAME") {
-      this.monsters.update(time)
-      this.stars.update(time)
+    if(step === "INTRO" || step === "COUNTDOWN" || step === "GAME") {
       this.heros.update(time)
     }
     if(step === "GAME") {
+      this.monsters.update(time)
+      this.stars.update(time)
       this.mayAddStar(time)
       this.mayAddMonster(time)
       this.checkHerosStarsHit(time)
@@ -265,7 +267,7 @@ function newGameScene() {
     if(this.step === "INTRO") {
       let allReady = true
       for(const h of this.heros.children) allReady &= h.ready
-      if(allReady) this.setStep("GAME")
+      if(allReady) this.setStep("COUNTDOWN")
     }
   }
 
@@ -441,6 +443,43 @@ function newMonster(dir, y) {
 
   return monster
 }
+
+
+function newCountDown(startVal, next) {
+  const count = newGroup()
+  count.translation.x = WIDTH / 2
+  count.translation.y = HEIGHT / 2
+  count.val = startVal + 1
+
+  count.update = function(time) {
+    this.startTime ||= time
+    const age = time - this.startTime
+    if(age > startVal - this.val + 1) {
+      this.val -= 1
+      this.addNumber()
+    }
+    if(age > startVal) {
+      this.remove()
+      next && next()
+    }
+    propagUpdate.call(this, time)
+  }
+
+  count.addNumber = function() {
+    const number = addTo(this, new Two.Text(this.val, 0, 0, {
+      fill: "black", size: 100
+    }))
+    number.update = function(time) {
+      this.startTime ||= time
+      const age = time - this.startTime
+      this.scale = 1 + age * 6
+      if(age > .5) this.remove()
+    }
+  }
+
+  return count
+}
+
 
 function newScoresPanel(heros, maxNbScores) {
   const panel = newGroup()
