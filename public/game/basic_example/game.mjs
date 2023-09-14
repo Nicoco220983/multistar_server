@@ -8,6 +8,8 @@ const HEIGHT = 600
 const FPS = 60  // hardcoded in Twojs
 const BACKGROUND_COLOR = "#111"
 
+const VICTORY_SCORE = 1
+
 let Game = null
 
 
@@ -20,8 +22,8 @@ function startGame(wrapperEl, gameWs) {
     Game.roomId = gameWs.roomId
     Game.joypadUrl = gameWs.joypadUrl
     Game.sendInput = gameWs.sendInput
-    Game.players = {}
 
+    Game.players = {}
     Game.syncPlayers = function(players) {
       try {
         this.players = players
@@ -72,7 +74,7 @@ function newGameScene() {
   scn.notifs = addTo(scn, newGroup())
 
   scn.setStep = function(step) {
-    if(step === this.step) return console.warning(`Step is already '${step}'`)
+    if(step === this.step) return
     this.step = step
     if(step === "LOADING") {
       this.addLoadingTexts()
@@ -84,10 +86,13 @@ function newGameScene() {
     } else if(step === "GAME") {
       this.introTexts.remove()
       this.scoresPanel = newScoresPanel(this.heros.children, 5)
+      Game.sendInput({ step: "GAME" })
+    } else if(step === "VICTORY") {
+      this.addVictoryTexts()
+      Game.sendInput({ step: "VICTORY" })
+    } else if(step === "VICTORY") {
+      this.resetReadys()
     }
-    // else if(step === "VICTORY") {
-      //this.addVictory
-    //}
   }
 
   scn.update = function(time) {
@@ -183,6 +188,10 @@ function newGameScene() {
           star.remove()
           hero.score += 1
           this.scoresPanel.syncScores()
+          if(hero.score >= VICTORY_SCORE) {
+            this.winnerHero = hero
+            this.setStep("VICTORY")
+          }
         }
       }
     }
@@ -202,16 +211,18 @@ function newGameScene() {
   }
 
   scn.addVictoryTexts = function() {
-    const txtArgs = { fill: "black", size: 20 }
+    const player = Game.players[this.winnerHero.playerId]
+    const txtArgs = { fill: "black" }
     this.victoryTexts = addTo(this.notifs, newGroup())
     addTo(this.victoryTexts, new Two.Text(
       "VICTORY !",
       WIDTH / 2, HEIGHT / 3,
-      { ...txtArgs, size: 30 }
+      { ...txtArgs, size: 80 }
     ))
     addTo(this.victoryTexts, new Two.Text(
-      `${player.name} Won !`,
-      WIDTH / 2, HEIGHT / 2
+      `Winner: ${player.name}`,
+      WIDTH / 2, HEIGHT / 2,
+      { ...txtArgs, size: 40 }
     ))
   }
 
@@ -225,16 +236,24 @@ function newGameScene() {
 
   scn.setHeroReady = function(hero, ready) {
     hero.ready = ready
-    if(this.step === "INTRO") {
+    if(this.step === "INTRO" || this.step === "VICTORY") {
       let allReady = true
       for(const h of this.heros.children) {
         allReady &= h.ready
       }
       if(allReady) {
-        this.setStep("GAME")
-        Game.sendInput({ step: "GAME" })
+        if(this.step === "INTRO") this.setStep("GAME")
+        else if(this.step === "VICTORY") this.restart()
       }
     }
+  }
+  scn.resetReadys = function() {
+    this.heros.children.forEach(h => h.ready = false)
+  }
+
+  scn.restart = function() {
+    Game.addScene(newGameScene())
+    Game.sendInput({ restart: true })
   }
 
   scn.setStep("LOADING")

@@ -77,7 +77,7 @@ function newJoypadScene() {
   const scn = newGroup()
 
   scn.setStep = function(step) {
-    if(step === this.step) return console.warning(`Step is already '${step}'`)
+    if(step === this.step) return
     this.step = step
     if(step === "LOADING") {
       this.loadingTxts = addTo(this, newGroup())
@@ -91,8 +91,10 @@ function newJoypadScene() {
       addTo(this.arrowButtons, newArrowButton(0))
       addTo(this.arrowButtons, newArrowButton(1))
       this.readyButton = addTo(this, newReadyButton(WIDTH/2, 75))
-    } else if(step === "JOYPAD") {
+    } else if(step === "GAME") {
       this.readyButton.remove()
+    } else if(step === "VICTORY") {
+      this.readyButton = null
     }
   }
   scn.setStep("LOADING")
@@ -116,13 +118,14 @@ function newJoypadScene() {
   // range(3).forEach(i => newHeart(scn, i+1))
 
   scn.click = function(pointer) {
-    if(this.step === "INTRO") {
+    const { step } = this
+    if(step === "INTRO" || step === "VICTORY") {
       if(checkHit(pointer, this.readyButton)) {
         this.readyButton.click(pointer)
         return
       }
     }
-    if(this.step === "INTRO" || this.step === "JOYPAD") {
+    if(step === "INTRO" || step === "GAME") {
       for(const button of this.arrowButtons.children) {
         if(checkHit(pointer, button)) button.click(pointer)
       }
@@ -133,6 +136,12 @@ function newJoypadScene() {
     propagUpdate.call(this, time)
     if(this.step === "LOADING") {
       if(checkAllLoadsDone()) this.setStep("INTRO")
+    }
+    if(this.step === "VICTORY") {
+      this.timeForReadyButton ||= time + 3
+      if(!this.readyButton && time > this.timeForReadyButton) {
+        this.readyButton = addTo(this, newReadyButton(WIDTH/2, 75))
+      }
     }
   }
   //   if(scn.step === "GAME") {
@@ -160,9 +169,16 @@ function newJoypadScene() {
   // music.replay()
 
   scn.handleGameInput = function(kwargs) {
-    if(kwargs.step === "GAME") {
-      this.setStep("JOYPAD")
+    if(kwargs.step) {
+      this.setStep(kwargs.step)
     }
+    if(kwargs.restart) {
+      this.restart()
+    }
+  }
+
+  scn.restart = function() {
+    Joypad.addScene(newJoypadScene())
   }
 
   return scn
