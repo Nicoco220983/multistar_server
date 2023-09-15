@@ -111,31 +111,50 @@ function newCanvasFromSrc(src) {
 }
 
 function cloneCanvas(canvas, kwargs) {
-    const { width, height } = canvas
+    const flipX = (kwargs && kwargs.flipX) || false
+    const flipY = (kwargs && kwargs.flipY) || false
+    const scaleX = (kwargs && kwargs.scaleX) || 1
+    const scaleY = (kwargs && kwargs.scaleY) || 1
+    const numCol = (kwargs && kwargs.col && kwargs.col[0]) || 0
+    const nbCols = (kwargs && kwargs.col && kwargs.col[1]) || 1
+    const numRow = (kwargs && kwargs.row && kwargs.row[0]) || 0
+    const nbRows = (kwargs && kwargs.row && kwargs.row[1]) || 1
+    const width = canvas.width * scaleX / nbCols
+    const height = canvas.height * scaleY / nbRows
     const res = document.createElement("canvas")
     assign(res, { width, height })
     const ctx = res.getContext("2d")
-    if(kwargs && kwargs.flipX) {
+    if(flipX) {
         ctx.translate(width, 0)
         ctx.scale(-1, 1)
     }
-    if(kwargs && kwargs.flipY) {
-        ctx.translate(height, 0)
+    if(flipY) {
+        ctx.translate(0, height)
         ctx.scale(1, -1)
     }
-    ctx.drawImage(canvas, 0, 0, width, height)
+    if(numCol !== 0) ctx.translate(-width * numCol, 0)
+    if(numRow !== 0) ctx.translate(0, -height * numRow)
+    if(scaleX !== 1) ctx.scale(scaleX, 1)
+    if(scaleY !== 1) ctx.scale(1, scaleY)
+    ctx.drawImage(canvas, 0, 0)
     return res
 }
 
 function colorizeCanvas(canvas, color) {
     const { width, height } = canvas
-  const colorCanvas = newCanvas(width, height, color)
-  const colorCtx = colorCanvas.getContext("2d")
-  colorCtx.globalCompositeOperation = "destination-in"
-  colorCtx.drawImage(canvas, 0, 0, width, height)
-  const ctx = canvas.getContext("2d")
-  ctx.globalCompositeOperation = "color"
-  ctx.drawImage(colorCanvas, 0, 0, width, height)
+    const colorCanvas = newCanvas(width, height, color)
+    const colorCtx = colorCanvas.getContext("2d")
+    colorCtx.globalCompositeOperation = "destination-in"
+    colorCtx.drawImage(canvas, 0, 0, width, height)
+    const ctx = canvas.getContext("2d")
+    ctx.globalCompositeOperation = "color"
+    ctx.drawImage(colorCanvas, 0, 0, width, height)
+    ctx.globalCompositeOperation = "source-over"
+}
+
+function addCanvas(canvas, canvas2, x=0, y=0) {
+    const ctx = canvas.getContext("2d")
+    ctx.drawImage(canvas2, x, y)
 }
 
 function getHitBox(obj) {
@@ -191,6 +210,7 @@ export {
     newCanvasFromSrc,
     cloneCanvas,
     colorizeCanvas,
+    addCanvas,
     checkAllLoadsDone,
     // newFullscreenIcon,
     checkHit,

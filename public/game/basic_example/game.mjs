@@ -1,4 +1,4 @@
-const { abs, min, atan2, PI, random } = Math
+const { abs, floor, min, atan2, PI, random } = Math
 
 import * as utils from './utils.mjs'
 const { urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
@@ -104,6 +104,7 @@ function newGameScene() {
     }
     if(step === "INTRO" || step === "COUNTDOWN" || step === "GAME") {
       this.heros.update(time)
+      this.checkHerosHerosHit()
     }
     if(step === "GAME") {
       this.monsters.update(time)
@@ -112,7 +113,6 @@ function newGameScene() {
       this.mayAddMonster(time)
       this.checkHerosStarsHit(time)
       this.checkHerosMonstersHit(time)
-      this.checkHerosHerosHit()
     }
     this.notifs.update(time)
   }
@@ -282,10 +282,10 @@ function newGameScene() {
 }
 
 
-const heroCanvas = {
-  base: addToLoads(utils.newCanvasFromSrc(urlAbsPath("assets/hero.png"))),
+const heroBodyCanvas = {
+  base: addToLoads(utils.newCanvasFromSrc(urlAbsPath("assets/hero_body.png"))),
   get: function(color) {
-    const key = `trans:${color}`
+    const key = `body:${color}`
     if(!this[key]) {
       this[key] = utils.cloneCanvas(this.base)
       utils.colorizeCanvas(this[key], color)
@@ -293,6 +293,7 @@ const heroCanvas = {
     return this[key]
   }
 }
+const heroFacesImg = addToLoads(new Two.Texture(urlAbsPath("assets/hero_faces.png")))
 
 
 function newHero(playerId, x, y) {
@@ -309,10 +310,17 @@ function newHero(playerId, x, y) {
   hero.score = 0
   hero.paralysisEndTime = 0
 
-  const img = addTo(hero, new Two.ImageSequence([
-    new Two.Texture(heroCanvas.get(color)),
+  const bodyImg = addTo(hero, new Two.ImageSequence([
+    new Two.Texture(heroBodyCanvas.get(color))
   ], 0, 0))
-  img.scale = 80 / 100
+  bodyImg.scale = 80 / 100
+  hero.faceImg = addTo(hero, new Two.Sprite(
+    heroFacesImg,
+    0, 0,
+    10, 1
+  ))
+  hero.faceImg.scale = 60 / 100
+  hero.faceImg.index = hero.faceNum = floor(random() * 9)
 
   addTo(hero, new Two.Text(
     name,
@@ -323,6 +331,7 @@ function newHero(playerId, x, y) {
   hero.update = function(time) {
     if(!this.isParalysed(time)) {
       this.visible = true
+      this.faceImg.index = hero.faceNum
       this.translation.x += this.spdX / FPS
       this.translation.y += this.spdY/ FPS
       const { x, y } = this.translation
@@ -336,6 +345,7 @@ function newHero(playerId, x, y) {
       }
     } else {
       this.visible = (time * 4) % 1 > .5
+      this.faceImg.index = 9
     }
   }
 
