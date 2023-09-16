@@ -14,6 +14,7 @@ class ColorPicker extends HTMLElement {
                     display: inline-flex;
                     flex-direction: row;
                     gap: .5em;
+                    flex-wrap: wrap;
                 }
                 .color {
                     width: 3em;

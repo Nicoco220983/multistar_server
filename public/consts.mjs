@@ -20,5 +20,12 @@ export default Object.freeze({
     GAME_INPUT: 'GMI',
   },
 
-  PLAYER_COLORS: ["red","blue","yellow","green","purple","orange"],
+  PLAYER_COLORS: [
+    "red", "pink",
+    "blue", "aqua",
+    "yellow", "gold",
+    "green", "chartreuse",
+    "purple", "violet",
+    "orange", "coral",
+  ],
 })

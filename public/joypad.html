@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
         <title>MultiPlayer Joypad</title>
         <style>
-            body {
+            html, body {
                 padding: 0;
                 margin: 0;
                 height: 100%;
@@ -11,16 +12,35 @@
             .flexcol {
                 display: flex;
                 flex-direction: column;
-                gap: 5px;
+                align-items: center;
+                justify-content: space-around;
+                gap: .5em;
             }
             .flexrow {
                 display: flex;
                 flex-direction: row;
-                gap: 5px;
-            }
-            .center {
                 align-items: center;
-                justify-content: center;
+                justify-content: space-around;
+                gap: .5em;
+            }
+            .fill {
+                flex: 1;
+            }
+            button#join {
+                display: inline-block;
+                outline: none;
+                cursor: pointer;
+                font-weight: 600;
+                border-radius: 3px;
+                padding: 12px 24px;
+                border: 0;
+                color: #3a4149;
+                background: #e7ebee;
+                line-height: 1.15;
+                font-size: 16px;
+            }
+            button#join:hover {
+                background: lightgrey;
             }
             #aspect_ratio_wrapper {
                 outline: 1px solid lightgrey;
@@ -31,20 +51,23 @@
         <script src="../two.min.js"></script>
         <script type="module" src="/color-picker.mjs"></script>
     </head>
-    <body class="flexcol center">
-        <div id="identification" class="flexcol">
-            <p class="flexrow center">
-                Enter your name: <input class="player_name" type="text">
-            </p>
-            <p class="flexrow center">
-                Pick your color: <color-picker id="color_picker"></color-picker>
-            </p>
-            <p class="flexrow center"><button class="join">Join</button></p>
+    <body class="flexcol">
+        <div id="identification" class="flexcol fill" style="padding: 1em; gap: 1em; max-height: 15em;">
+            <div class="flexrow">
+                <div>Enter your name:</div>
+                <div><input class="player_name" type="text"></div>
+            </div>
+            <div class="flexcol" style="justify-content: center; gap: .5em;">
+                <div>Pick your color:</div>
+                <div><color-picker id="color_picker"></color-picker></div>
+            </div>
+            <div class="flexrow"><button id="join">Join</button></div>
+            
         </div>
-        <div id="fullscreen_wrapper" class="center">
-            <div id="aspect_ratio_wrapper" class="center"></div>
+        <div id="fullscreen_wrapper" class="flexcol">
+            <div id="aspect_ratio_wrapper" class="flexcol"></div>
         </div>
-        <div id="games_menu" class="center"></div>
+        <div id="games_menu" class="flexcol"></div>
     </body>
     <script type="module">
 
@@ -104,7 +127,7 @@
                 playerWs.player.color = color
             }
 
-            idEl.querySelector(".join").onclick = () => {
+            idEl.querySelector("#join").onclick = () => {
                 const { player } = playerWs
                 player.name = idEl.querySelector(".player_name").value || player.name || "Player"
                 playerWs.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify(player))
