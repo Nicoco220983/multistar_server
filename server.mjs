@@ -11,7 +11,8 @@ import { WebSocketServer } from 'ws'
 import Consts from './public/consts.mjs'
 // import { Game } from './public/game.mjs'
 
-const PORT = process.env.PORT || 3000
+const PROD = process.env.PROD ? true : false
+const PORT = process.env.PORT || PROD ? 80 : 3000
 const DIRNAME = dirname(fileURLToPath(import.meta.url))
 
 
@@ -87,7 +88,12 @@ class GameServer {
   }
 
   generateRoomId() {
-    return floor(random() * 1000).toString()
+    let it = 1
+    while(true) {
+      const roomId = PROD ? floor(random() * 1000).toString() : it.toString()
+      if(this.rooms[roomId] === undefined) return roomId
+      it++
+    }
   }
 
   handleIdentifyGame(ws) {
