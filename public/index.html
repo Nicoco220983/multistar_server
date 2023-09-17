@@ -3,7 +3,7 @@
     <head>
         <title>MultiPlayer Games</title>
         <style>
-            body {
+            html, body {
                 padding: 0;
                 margin: 0;
                 height: 100%;
@@ -11,16 +11,19 @@
             .flexcol {
                 display: flex;
                 flex-direction: column;
-                gap: 5px;
+                align-items: center;
+                justify-content: space-around;
+                gap: .5em;
             }
             .flexrow {
                 display: flex;
                 flex-direction: row;
-                gap: 5px;
-            }
-            .center {
                 align-items: center;
-                justify-content: center;
+                justify-content: space-around;
+                gap: .5em;
+            }
+            .fill {
+                flex: 1;
             }
             #aspect_ratio_wrapper {
                 outline: 1px solid lightgrey;
@@ -34,16 +37,27 @@
                 width: 100%;
                 aspect-ratio: 16 / 9;
             }
+            #disconnected {
+                width: 100%;
+            }
+            #disconnected_img {
+                width: 50%;
+                max-width: 400px;
+            }
         </style>
         <script src="two.min.js"></script>
         <script type="module" src="games-menu.mjs"></script>
     </head>
-    <body class="flexcol center">
-        <div id="fullscreen_wrapper" class="flexcol center">
-            <div id="aspect_ratio_wrapper" class="flexcol center"></div>
+    <body class="flexcol">
+        <div id="fullscreen_wrapper" class="flexcol">
+            <div id="aspect_ratio_wrapper" class="flexcol"></div>
         </div>
-        <div id="joypads" class="flexcol center" style="display:none"></div>
-        <div id="menu" class="flexcol center"></div>
+        <div id="joypads" class="flexcol" style="display: none"></div>
+        <div id="menu" class="flexcol"></div>
+        <div id="disconnected" class="flexcol fill" style="display: none; justify-content: center; ">
+            <img id="disconnected_img" src="/assets/disconnected.png">
+            <div>You have been <b>disconnected</b> !</div>
+        </div>
     </body>
     <script type="module">
 
@@ -59,6 +73,7 @@
         const wrapperEl = document.getElementById("aspect_ratio_wrapper")
         const joypadsEl = document.getElementById("joypads")
         const menuEl = document.getElementById("menu")
+        const disconnectedEl = document.getElementById("disconnected")
 
         function initGameWebsocket() {
             const socketProtocol = (window.location.protocol.includes('https')) ? 'wss' : 'ws'
@@ -108,7 +123,8 @@
         }
 
         function handleCloseConnection() {
-            wrapperEl.innerHTML = "<p>Deconnected from server :(</p>"
+            for(const el of [wrapperEl, joypadsEl, menuEl]) el.style.display = "none"
+            disconnectedEl.style.display = ""
         }
 
         function addEmbeddedJoypad(joypadUrl) {

@@ -47,6 +47,13 @@
                 width: 500px;
                 height: 500px;
             }
+            #disconnected {
+                width: 100%;
+            }
+            #disconnected_img {
+                width: 50%;
+                max-width: 400px;
+            }
         </style>
         <script src="../two.min.js"></script>
         <script type="module" src="/color-picker.mjs"></script>
@@ -62,12 +69,15 @@
                 <div><color-picker id="color_picker"></color-picker></div>
             </div>
             <div class="flexrow"><button id="join">Join</button></div>
-            
         </div>
         <div id="fullscreen_wrapper" class="flexcol">
             <div id="aspect_ratio_wrapper" class="flexcol"></div>
         </div>
         <div id="games_menu" class="flexcol"></div>
+        <div id="disconnected" class="flexcol fill" style="display: none; justify-content: center; ">
+            <img id="disconnected_img" src="/assets/disconnected.png">
+            <div>You have been <b>disconnected</b> !</div>
+        </div>
     </body>
     <script type="module">
 
@@ -87,6 +97,7 @@
         const colorPickerEl = document.getElementById("color_picker")
         const wrapperEl = document.getElementById("aspect_ratio_wrapper")
         const gamesMenuEl = document.getElementById("games_menu")
+        const disconnectedEl = document.getElementById("disconnected")
 
         function initJoypadWebsocket() {
             const socketProtocol = (window.location.protocol.includes('https')) ? 'wss' : 'ws'
@@ -164,7 +175,8 @@
         }
 
         function handleCloseConnection() {
-            wrapperEl.innerHTML = "<p>Deconnected from server :(</p>"
+            for(const el of [idEl, colorPickerEl, wrapperEl, gamesMenuEl]) el.style.display = "none"
+            disconnectedEl.style.display = ""
         }
 
         async function startJoypad(gameKey) {
