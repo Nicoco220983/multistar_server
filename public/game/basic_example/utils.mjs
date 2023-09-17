@@ -176,29 +176,11 @@ function checkHit(obj1, obj2) {
 }
 
 
-// function newFullscreenIcon(scnGraph, kwargs) {
-//     const x = (kwargs && kwargs.x) || 0
-//     const y = (kwargs && kwargs.y) || 0
-//     const size = (kwargs && kwargs.size) || 50
-//     const icon = scnGraph.makeSprite(
-//         urlAbsPath('assets/fullscreen-icon.png'),
-//         x, y,
-//         2, 1,
-//     )
-//     icon.scale = size/50
-//     icon.click = () => {
-//         if(!document.fullscreenElement) {
-//             const wrapperEl = scnGraph.renderer.domElement.parentElement
-//             wrapperEl.parentElement.requestFullscreen()
-//         } else {
-//             document.exitFullscreen()
-//         }
-//     }
-//     document.addEventListener("fullscreenchange", () => {
-//         icon.visible = document.fullscreenElement ? false : true
-//     })
-//     return icon
-// }
+class Group extends Two.Group {
+    update(time) {
+        this.children.forEach(s => s.update && s.update(time))
+    }
+}
 
 
 export {
@@ -214,4 +196,5 @@ export {
     checkAllLoadsDone,
     // newFullscreenIcon,
     checkHit,
+    Group,
 }

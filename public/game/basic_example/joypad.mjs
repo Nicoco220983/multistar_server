@@ -1,7 +1,7 @@
 const { min } = Math
 
 import * as utils from './utils.mjs'
-const { urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
+const { Group, urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
 
 const WIDTH = 800
 const HEIGHT = 450
@@ -20,7 +20,7 @@ function startJoypad(wrapperEl, playerWs) {
 
     Joypad.handleGameInput = function(kwargs) {
       try {
-        this.getScene().handleGameInput(kwargs)
+        this._scene.handleGameInput(kwargs)
       } catch(err) {
         console.log(err)
       }
@@ -29,42 +29,22 @@ function startJoypad(wrapperEl, playerWs) {
     Joypad.player = playerWs.player
     Joypad.sendInput = playerWs.sendInput
   
-    //pauseGame(true)
-  
     const pointer = utils.newPointer(Joypad)
   
-    Joypad.controllerScns = newGroup()
-    Joypad.getScene = () => Joypad.controllerScns.children[0]
-    Joypad.addScene = function(scn) {
-      const prevScn = Joypad.getScene()
-      if(prevScn) prevScn.remove()
-      Joypad.controllerScns.add(scn)
+    Joypad.sceneGroup = addTo(Joypad, new Group())
+    Joypad.setScene = function(scn) {
+      if(this._scene !== undefined) this._scene.remove()
+      this._scene = addTo(Joypad.sceneGroup, scn)
     }
-    Joypad.addScene(newJoypadScene())
-  
-    // const icons = Joypad.makeGroup()
-    // const fullscreenIcon = addTo(icons, newFullscreenIcon(Joypad, {
-    //   x: WIDTH - ICON_SIZE*3/4,
-    //   y: ICON_SIZE*3/4,
-    //   size: ICON_SIZE,
-    // }))
+    Joypad.setScene(new JoypadScene())
   
     pointer.prevIsDown = false
-    Joypad.bind("update", (frameCount, timeDelta) => {
+    Joypad.bind("update", function(frameCount, timeDelta) {
       const time = frameCount / FPS
-      const scn = Joypad.getScene()
-      if(pointer.isDown) {
-        // if(collide(fullscreenIcon, pointer)) {
-        //   if(!pointer.prevIsDown) fullscreenIcon.click()
-        // } else {
-          scn.click(pointer)
-        // }
-      }
-      if(!Joypad.paused) scn.update(time)
+      if(pointer.isDown) this._scene.click(pointer)
+      if(!Joypad.paused) this._scene.update(time)
       pointer.prevIsDown = pointer.isDown
     })
-  
-    // document.addEventListener("blur", () => pauseGame(true))
     
     Joypad.play()
 
@@ -72,50 +52,34 @@ function startJoypad(wrapperEl, playerWs) {
 }
 
 
-function newJoypadScene() {
+class JoypadScene extends Group {
 
-  const scn = newGroup()
+  constructor() {
+    super()
+    this.setStep("LOADING")
+  }
 
-  scn.setStep = function(step) {
+  setStep(step) {
     if(step === this.step) return
     this.step = step
     if(step === "LOADING") {
-      this.loadingTxts = addTo(this, newGroup())
+      this.loadingTxts = addTo(this, new Group())
       addTo(this.loadingTxts, Joypad.makeText(
         "LOADING...",
         WIDTH / 2, HEIGHT / 2, { fill: "white", size: 20 }
       ))
     } else if(step === "INTRO") {
       this.loadingTxts.remove()
-      this.arrowButtons = addTo(this, newGroup())
-      addTo(this.arrowButtons, newArrowButton(0))
-      addTo(this.arrowButtons, newArrowButton(1))
-      this.readyButton = addTo(this, newReadyButton(WIDTH/2, 75))
+      this.arrowButtons = addTo(this, new Group())
+      addTo(this.arrowButtons, new ArrowButton(0))
+      addTo(this.arrowButtons, new ArrowButton(1))
+      this.readyButton = addTo(this, new ReadyButton(WIDTH/2, 75))
     } else if(step === "GAME") {
       this.readyButton.remove()
     }
   }
-  scn.setStep("LOADING")
 
-  // scn.step = "GAME"
-
-  // scn.hero = newHero(scn, {
-  //   x: Game.width * 0.5,
-  //   y: Game.height * 0.75,
-  // })
-  // scn.heroShoots = addTo(scn, newGroup())
-  // const heroShootFactory = every(.5, () => newHeroShoot(scn, scn.hero.translation))
-
-  // scn.invaders = addTo(scn, newGroup())
-  // const invaderFactory = every(1, () => { if(scn.invaders.children.length <= 5) newInvader(scn) })
-  // scn.invaderShoots = addTo(scn, newGroup())
-  // scn.invaderDeaths = addTo(scn, newGroup())
-
-  // scn.indics = addTo(scn, newGroup())
-  // newScoreIndic(scn)
-  // range(3).forEach(i => newHeart(scn, i+1))
-
-  scn.click = function(pointer) {
+  click(pointer) {
     const { step } = this
     if(step === "INTRO") {
       if(checkHit(pointer, this.readyButton)) {
@@ -136,43 +100,20 @@ function newJoypadScene() {
     }
   }
 
-  scn.update = function(time) {
-    propagUpdate.call(this, time)
+  update(time) {
+    super.update(time)
     if(this.step === "LOADING") {
       if(checkAllLoadsDone()) this.setStep("INTRO")
     }
     if(this.step === "VICTORY") {
       this.timeForRestartButton ||= time + 3
       if(!this.restartButton && time > this.timeForRestartButton) {
-        this.restartButton = addTo(this, newRestartButton(WIDTH/2, 75))
+        this.restartButton = addTo(this, new RestartButton(WIDTH/2, 75))
       }
     }
   }
-  //   if(scn.step === "GAME") {
-  //     heroShootFactory(time)
-  //     invaderFactory(time)
-  //     propagUpdate.call(this, time)
-  //   } else if(scn.step === "GAMEOVER") {
-  //     scn.afterGameOver ||= after(2, () => {
-  //       newGameOverClickIndic(scn)
-  //       scn.readyToRestart = true
-  //     })
-  //     scn.afterGameOver(time)
-  //   }
-  // }
 
-  // scn.setStep = function(step) {
-  //   this.step = step
-  //   if(step === "GAMEOVER") {
-  //     newGameOverIndic(scn)
-  //   }
-  // }
-
-  // onRemove(scn, () => music.stop())
-
-  // music.replay()
-
-  scn.handleGameInput = function(kwargs) {
+  handleGameInput(kwargs) {
     if(kwargs.step) {
       this.setStep(kwargs.step)
     }
@@ -181,11 +122,9 @@ function newJoypadScene() {
     }
   }
 
-  scn.restart = function() {
-    Joypad.addScene(newJoypadScene())
+  restart() {
+    Joypad.addScene(new JoypadScene())
   }
-
-  return scn
 }
 
 
@@ -204,67 +143,72 @@ const arrowCanvas = {
 }
 
 
-function newArrowButton(dir) {
-  const res = newGroup()
-  res.translation.x = WIDTH / 4 * (dir ? 3 : 1)
-  res.translation.y = HEIGHT / 2
-  const img = addTo(res, Joypad.makeImageSequence([
-    new Two.Texture(arrowCanvas.get(dir, false, Joypad.player.color)),
-    new Two.Texture(arrowCanvas.get(dir, true, Joypad.player.color)),
-  ], 0, 0))
-  img.scale = min(WIDTH / 2, HEIGHT) / 200 * .8
-  res.lastClickTime = -1
-  res.update = function(time) {
-    this.time = time
-    img.index = this.time > this.lastClickTime + .1 ? 0 : 1
+class ArrowButton extends Two.ImageSequence {
+  constructor(dir) {
+    super(
+      [
+        new Two.Texture(arrowCanvas.get(dir, false, Joypad.player.color)),
+        new Two.Texture(arrowCanvas.get(dir, true, Joypad.player.color)),
+      ],
+      WIDTH / 4 * (dir ? 3 : 1),
+      HEIGHT / 2
+    )
+    this.scale = min(WIDTH / 2, HEIGHT) / 200 * .8
+    this.dir = dir
+    this.lastClickTime = -1
   }
-  res.getHitBox = function() {
+  update(time) {
+    this.time = time
+    this.index = this.time > this.lastClickTime + .1 ? 0 : 1
+  }
+  getHitBox() {
     return {
-      left: dir ? WIDTH / 2 : 0,
+      left: this.dir ? WIDTH / 2 : 0,
       top: 0,
       width: WIDTH / 2,
       height: HEIGHT,
     }
   }
-  res.click = function(pointer) {
+  click(pointer) {
     this.lastClickTime = this.time
-    if(!pointer.prevIsDown) Joypad.sendInput({ dir })
+    if(!pointer.prevIsDown) Joypad.sendInput({ dir: this.dir })
   }
-  return res
 }
 
 
-function newReadyButton(x, y) {
-  const button = new Two.Sprite(
-    urlAbsPath("assets/ready_buttons.png"),
-    x, y,
-    2, 1,
-  )
-  button.scale = 250 / 250
-  button.ready = false
-  button.click = function(pointer) {
+class ReadyButton extends Two.Sprite {
+  constructor(x, y) {
+    super(
+      urlAbsPath("assets/ready_buttons.png"),
+      x, y,
+      2, 1,
+    )
+    this.scale = 250 / 250
+    this.ready = false
+  }
+  click(pointer) {
     if(!pointer.prevIsDown) {
       this.ready = !this.ready
       this.index = this.ready ? 1 : 0
       Joypad.sendInput({ ready: this.ready })
     }
   }
-  return button
 }
 
 
-function newRestartButton(x, y) {
-  const button = new Two.Sprite(
-    urlAbsPath("assets/restart_button.png"),
-    x, y,
-  )
-  button.scale = 250 / 250
-  button.click = function(pointer) {
+class RestartButton extends Two.Sprite {
+  constructor(x, y) {
+    super(
+      urlAbsPath("assets/restart_button.png"),
+      x, y,
+    )
+    this.scale = 250 / 250
+  }
+  click(pointer) {
     if(!pointer.prevIsDown) {
       Joypad.sendInput({ restart: true })
     }
   }
-  return button
 }
 
 
@@ -277,16 +221,16 @@ function addTo(group, obj) {
 }
 
 
-function propagUpdate(time) {
-  this.children.forEach(s => s.update && s.update(time))
-}
+// function propagUpdate(time) {
+//   this.children.forEach(s => s.update && s.update(time))
+// }
 
 
-function newGroup() {
-  const group = Joypad.makeGroup()
-  group.update = propagUpdate
-  return group
-}
+// function newGroup() {
+//   const group = Joypad.makeGroup()
+//   group.update = propagUpdate
+//   return group
+// }
 
 
 export { startJoypad }
