@@ -123,7 +123,7 @@ class JoypadScene extends Group {
   }
 
   restart() {
-    Joypad.addScene(new JoypadScene())
+    Joypad.setScene(new JoypadScene())
   }
 }
 
