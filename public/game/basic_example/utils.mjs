@@ -27,6 +27,12 @@ class GameAudio extends Audio {
 }
 
 
+function addTo(group, obj) {
+  group.add(obj)
+  return obj
+}
+
+
 function urlAbsPath(relPath){
   const url = new URL(relPath, import.meta.url)
   return url.pathname
@@ -57,17 +63,17 @@ function fitTwoToEl(two, wrapperEl, kwargs) {
 }
 
 
-function newPointer(scnGraph) {
+function newPointer(two) {
 
     const pointer = {}
-    const el = scnGraph.renderer.domElement
+    const el = two.renderer.domElement
 
     function _getMousePos(el, evt) {
         const pos = evt.changedTouches ? evt.changedTouches[0] : evt
         const rect = el.getBoundingClientRect()
         return {
-            x: (pos.clientX - rect.left) * scnGraph.width / rect.width,
-            y: (pos.clientY - rect.top) * scnGraph.height / rect.height,
+            x: (pos.clientX - rect.left) * two.width / rect.width,
+            y: (pos.clientY - rect.top) * two.height / rect.height,
         }
     }
 
@@ -199,6 +205,7 @@ function checkHit(obj1, obj2) {
 export {
     Group,
     GameAudio,
+    addTo,
     urlAbsPath,
     fitTwoToEl,
     newPointer,

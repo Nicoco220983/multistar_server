@@ -1,57 +1,63 @@
 const { min } = Math
 
 import * as utils from './utils.mjs'
-const { Group, urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
+const { Group, addTo, urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
 
 const WIDTH = 800
 const HEIGHT = 450
 const FPS = 60  // hardcoded in Twojs
-// const ICON_SIZE = 50
 const BACKGROUND_COLOR = "#111"
 
-let Joypad = null
+let joypad = null
 
 
 function startJoypad(wrapperEl, playerWs) {
+  joypad = new Joypad(wrapperEl, playerWs)
+  return joypad
+}
 
-    Joypad = new Two({
+
+class Joypad extends Two {
+
+  constructor(wrapperEl, playerWs) {
+    super({
       type: Two.Types.webgl,
       width: WIDTH,
       height: HEIGHT,
     })
-    utils.fitTwoToEl(Joypad, wrapperEl)
+    utils.fitTwoToEl(this, wrapperEl, { background: BACKGROUND_COLOR })
 
-    Joypad.onGameInput = function(kwargs) {
-      try {
-        this._scene.onGameInput(kwargs)
-      } catch(err) {
-        console.log(err)
-      }
-    }
+    this.player = playerWs.player
+    this.sendInput = playerWs.sendInput
+  
+    this.pointer = utils.newPointer(this)
 
-    Joypad.player = playerWs.player
-    Joypad.sendInput = playerWs.sendInput
+    this.sceneGroup = addTo(this, new Group())
+    this.setScene(new JoypadScene())
   
-    const pointer = utils.newPointer(Joypad)
-  
-    Joypad.sceneGroup = addTo(Joypad, new Group())
-    Joypad.setScene = function(scn) {
-      if(this._scene !== undefined) this._scene.remove()
-      this._scene = addTo(Joypad.sceneGroup, scn)
-    }
-    Joypad.setScene(new JoypadScene())
-  
-    pointer.prevIsDown = false
-    Joypad.bind("update", function(frameCount, timeDelta) {
+    this.pointer.prevIsDown = false
+    this.bind("update", (frameCount, timeDelta) => {
       const time = frameCount / FPS
-      if(pointer.isDown) this._scene.click(pointer)
-      if(!Joypad.paused) this._scene.update(time)
-      pointer.prevIsDown = pointer.isDown
+      if(this.pointer.isDown) this._scene.click(this.pointer)
+      this._scene.update(time)
+      this.pointer.prevIsDown = this.pointer.isDown
     })
-    
-    Joypad.play()
 
-    return Joypad
+    this.play()
+  }
+
+  onGameInput(kwargs) {
+    try {
+      this._scene.onGameInput(kwargs)
+    } catch(err) {
+      console.log(err)
+    }
+  }
+  
+  setScene(scn) {
+    if(this._scene !== undefined) this._scene.remove()
+    this._scene = addTo(this.sceneGroup, scn)
+  }
 }
 
 
@@ -67,7 +73,7 @@ class JoypadScene extends Group {
     this.step = step
     if(step === "LOADING") {
       this.loadingTxts = addTo(this, new Group())
-      addTo(this.loadingTxts, Joypad.makeText(
+      addTo(this.loadingTxts, new Text(
         "LOADING...",
         WIDTH / 2, HEIGHT / 2, { fill: "white", size: 20 }
       ))
@@ -126,7 +132,7 @@ class JoypadScene extends Group {
   }
 
   restart() {
-    Joypad.setScene(new JoypadScene())
+    joypad.setScene(new JoypadScene())
   }
 }
 
@@ -150,8 +156,8 @@ class ArrowButton extends Two.ImageSequence {
   constructor(dir) {
     super(
       [
-        new Two.Texture(arrowCanvas.get(dir, false, Joypad.player.color)),
-        new Two.Texture(arrowCanvas.get(dir, true, Joypad.player.color)),
+        new Two.Texture(arrowCanvas.get(dir, false, joypad.player.color)),
+        new Two.Texture(arrowCanvas.get(dir, true, joypad.player.color)),
       ],
       WIDTH / 4 * (dir ? 3 : 1),
       HEIGHT / 2
@@ -174,7 +180,7 @@ class ArrowButton extends Two.ImageSequence {
   }
   click(pointer) {
     this.lastClickTime = this.time
-    if(!pointer.prevIsDown) Joypad.sendInput({ dir: this.dir })
+    if(!pointer.prevIsDown) joypad.sendInput({ dir: this.dir })
   }
 }
 
@@ -193,7 +199,7 @@ class ReadyButton extends Two.Sprite {
     if(!pointer.prevIsDown) {
       this.ready = !this.ready
       this.index = this.ready ? 1 : 0
-      Joypad.sendInput({ ready: this.ready })
+      joypad.sendInput({ ready: this.ready })
     }
   }
 }
@@ -209,31 +215,10 @@ class RestartButton extends Two.Sprite {
   }
   click(pointer) {
     if(!pointer.prevIsDown) {
-      Joypad.sendInput({ restart: true })
+      joypad.sendInput({ restart: true })
     }
   }
 }
-
-
-// utils //////////////////////////
-
-
-function addTo(group, obj) {
-  group.add(obj)
-  return obj
-}
-
-
-// function propagUpdate(time) {
-//   this.children.forEach(s => s.update && s.update(time))
-// }
-
-
-// function newGroup() {
-//   const group = Joypad.makeGroup()
-//   group.update = propagUpdate
-//   return group
-// }
 
 
 export { startJoypad }

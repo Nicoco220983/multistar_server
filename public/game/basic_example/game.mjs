@@ -1,7 +1,7 @@
 const { abs, floor, min, atan2, PI, random } = Math
 
 import * as utils from './utils.mjs'
-const { Group, GameAudio, urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
+const { Group, GameAudio, addTo, urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
 
 const WIDTH = 800
 const HEIGHT = 600
@@ -11,57 +11,65 @@ const BACKGROUND_COLOR = "#111"
 const HERO_PARALYSIS_DUR = 2
 const VICTORY_SCORE = 20
 
-let Game = null
+let game = null
 
 
 function startGame(wrapperEl, gameWs) {
+  game = new Game(wrapperEl, gameWs)
+  return game
+}
 
-    Game = new Two({
-        type: Two.Types.webgl,
-        width: WIDTH,
-        height: HEIGHT,
+
+class Game extends Two {
+
+  constructor(wrapperEl, gameWs) {
+    super({
+      type: Two.Types.webgl,
+      width: WIDTH,
+      height: HEIGHT,
     })
-    utils.fitTwoToEl(Game, wrapperEl)
+    utils.fitTwoToEl(this, wrapperEl, { background: BACKGROUND_COLOR })
 
-    Game.roomId = gameWs.roomId
-    Game.joypadUrl = gameWs.joypadUrl
-    Game.sendInput = gameWs.sendInput
+    this.roomId = gameWs.roomId
+    this.joypadUrl = gameWs.joypadUrl
+    this.sendInput = gameWs.sendInput
 
-    Game.players = {}
-    Game.syncPlayers = function(players) {
-      try {
-        this.players = players
-        this._scene.syncPlayers()
-      } catch(err) {
-        console.log(err)
-      }
-    }
+    this.players = {}
 
-    Game.onJoypadInput = function(playerId, kwargs) {
-      try {
-        this._scene.onJoypadInput(playerId, kwargs)
-      } catch(err) {
-        console.log(err)
-      }
-    }
+    this.sceneGroup = addTo(this, new Group())
+    this.setScene(new GameScene())
   
-    Game.sceneGroup = addTo(Game, new Group())
-    Game.setScene = function(scn) {
-      if(this._scene !== undefined) this._scene.remove()
-      this._scene = addTo(Game.sceneGroup, scn)
-    }
-    Game.setScene(new GameScene())
-  
-    Game.bind("update", (frameCount, timeDelta) => {
+    this.bind("update", (frameCount, timeDelta) => {
       const time = frameCount / FPS
-      const gameScn = Game._scene
-      if(!Game.paused) gameScn.update(time)
+      this._scene.update(time)
     })
     
-    Game.play()
+    this.play()
+  }
 
-    return Game
+  syncPlayers(players) {
+    try {
+      this.players = players
+      this._scene.syncPlayers()
+    } catch(err) {
+      console.log(err)
+    }
+  }
+
+  onJoypadInput(playerId, kwargs) {
+    try {
+      this._scene.onJoypadInput(playerId, kwargs)
+    } catch(err) {
+      console.log(err)
+    }
+  }
+
+  setScene(scn) {
+    if(this._scene !== undefined) this._scene.remove()
+    this._scene = addTo(this.sceneGroup, scn)
+  }
 }
+
 
 // Wallpaper by Kevin MacLeod | https://incompetech.com/
 // Music promoted by https://www.chosic.com/free-music/all/
@@ -101,12 +109,12 @@ class GameScene extends Group {
     } else if(step === "COUNTDOWN") {
       this.introTexts.remove()
       addTo(this.notifs, new CountDown(3, () => this.setStep("GAME")))
-      Game.sendInput({ step: "GAME" })
+      game.sendInput({ step: "GAME" })
     } else if(step === "GAME") {
       this.scoresPanel = addTo(this.notifs, new ScoresPanel(this.heros.children, 5))
     } else if(step === "VICTORY") {
       this.addVictoryTexts()
-      Game.sendInput({ step: "VICTORY" })
+      game.sendInput({ step: "VICTORY" })
     }
   }
 
@@ -160,7 +168,7 @@ class GameScene extends Group {
       { ...textArgs, size: 40 }
     ))
     addTo(this.introTexts, new Two.Text(
-      Game.joypadUrl,
+      game.joypadUrl,
       WIDTH / 2, HEIGHT / 2 + 50,
       textArgs
     ))
@@ -168,8 +176,8 @@ class GameScene extends Group {
 
   syncPlayers() {
     if(this.step === "LOADING") return
-    for(const playerId in Game.players) if(!this.getHero(playerId)) this.addHero(playerId)
-    for(const hero of this.heros.children) if(!Game.players[hero.playerId]) this.rmHero(hero.playerId)
+    for(const playerId in game.players) if(!this.getHero(playerId)) this.addHero(playerId)
+    for(const hero of this.heros.children) if(!game.players[hero.playerId]) this.rmHero(hero.playerId)
   }
   addHero(playerId) {
     addTo(this.heros, new Hero(
@@ -250,7 +258,7 @@ class GameScene extends Group {
   }
 
   addVictoryTexts() {
-    const player = Game.players[this.winnerHero.playerId]
+    const player = game.players[this.winnerHero.playerId]
     const txtArgs = { fill: "black" }
     this.victoryTexts = addTo(this.notifs, new Group())
     addTo(this.victoryTexts, new Two.Text(
@@ -286,8 +294,8 @@ class GameScene extends Group {
   }
 
   restart() {
-    Game.setScene(new GameScene())
-    Game.sendInput({ restart: true })
+    game.setScene(new GameScene())
+    game.sendInput({ restart: true })
   }
 
   remove() {
@@ -316,7 +324,7 @@ class Hero extends Group {
   constructor(playerId, x, y) {
     super()
     this.playerId = playerId
-    const player = Game.players[playerId]
+    const player = game.players[playerId]
     const { name, color } = player
 
     this.translation.x = x
@@ -545,8 +553,8 @@ class ScoresPanel extends Group {
     sortedHeros.sort((h1, h2) => {
       if(h1.score > h2.score) return -1
       if(h1.score < h2.score) return 1
-      const p1 = Game.players[h1.playerId]
-      const p2 = Game.players[h1.playerId]
+      const p1 = game.players[h1.playerId]
+      const p2 = game.players[h1.playerId]
       if(p1.name > p2.name) return -1
       if(p1.name < p2.name) return 1
       return 0
@@ -555,7 +563,7 @@ class ScoresPanel extends Group {
       let txt = ""
       if(i < sortedHeros.length) {
         const hero = sortedHeros[i]
-        const player = Game.players[hero.playerId]
+        const player = game.players[hero.playerId]
         txt = `${player.name}: ${hero.score}`
       }
       this.scoreTexts.children[i].value = txt
@@ -565,12 +573,6 @@ class ScoresPanel extends Group {
 
 
 // utils //////////////////////////
-
-
-function addTo(group, obj) {
-  group.add(obj)
-  return obj
-}
 
 
 class Notif extends Two.Text {
