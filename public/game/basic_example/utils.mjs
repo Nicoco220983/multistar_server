@@ -1,16 +1,42 @@
 const { assign } = Object
 
 
+class Group extends Two.Group {
+    update(time) {
+        this.children.forEach(s => s.update && s.update(time))
+    }
+}
+
+
+class GameAudio extends Audio {
+  constructor(src, kwargs) {
+    super(src)
+    this.preload = "auto"
+    assign(this, kwargs)
+    this.oncanplaythrough = () => this.loaded = true
+  }
+  play(kwargs) {
+    this.loop = (kwargs && kwargs.loop) === true
+    super.play()
+  }
+  replay() {
+    this.pause()
+    this.currentTime = 0
+    this.play()
+  }
+}
+
+
 function urlAbsPath(relPath){
   const url = new URL(relPath, import.meta.url)
   return url.pathname
 }
 
 
-function newTwo(wrapperEl, width, height, kwargs) {
+function fitTwoToEl(two, wrapperEl, kwargs) {
 
+    const { width, height } = two
     const backgroundColor = (kwargs && kwargs.backgroundColor) || "black"
-
     const parentEl = wrapperEl.parentElement
 
     wrapperEl.style.aspectRatio = `${width}/${height}`
@@ -22,18 +48,12 @@ function newTwo(wrapperEl, width, height, kwargs) {
     fillSpace()
     window.addEventListener("resize", fillSpace)
 
-    const two = new Two({
-        type: Two.Types.webgl,
-        width: width,
-        height: height,
-    }).appendTo(wrapperEl)
+    two.appendTo(wrapperEl)
     assign(two.renderer.domElement.style, {
         width: "100%",
         height: "100%",
         backgroundColor,
     })
-
-    return two
 }
 
 
@@ -176,35 +196,11 @@ function checkHit(obj1, obj2) {
 }
 
 
-class Group extends Two.Group {
-    update(time) {
-        this.children.forEach(s => s.update && s.update(time))
-    }
-}
-
-
-class GameAudio extends Audio {
-  constructor(src, kwargs) {
-    super(src)
-    this.preload = "auto"
-    assign(this, kwargs)
-    this.oncanplaythrough = () => this.loaded = true
-  }
-  play(kwargs) {
-    this.loop = (kwargs && kwargs.loop) === true
-    super.play()
-  }
-  replay() {
-    this.pause()
-    this.currentTime = 0
-    this.play()
-  }
-}
-
-
 export {
+    Group,
+    GameAudio,
     urlAbsPath,
-    newTwo,
+    fitTwoToEl,
     newPointer,
     addToLoads,
     newCanvas,
@@ -213,8 +209,5 @@ export {
     colorizeCanvas,
     addCanvas,
     checkAllLoadsDone,
-    // newFullscreenIcon,
     checkHit,
-    Group,
-    GameAudio,
 }

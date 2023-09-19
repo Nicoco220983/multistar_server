@@ -16,9 +16,12 @@ let Game = null
 
 function startGame(wrapperEl, gameWs) {
 
-    Game = utils.newTwo(wrapperEl, WIDTH, HEIGHT, {
-      backgroundColor: BACKGROUND_COLOR
+    Game = new Two({
+        type: Two.Types.webgl,
+        width: WIDTH,
+        height: HEIGHT,
     })
+    utils.fitTwoToEl(Game, wrapperEl)
 
     Game.roomId = gameWs.roomId
     Game.joypadUrl = gameWs.joypadUrl

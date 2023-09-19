@@ -14,9 +14,12 @@ let Joypad = null
 
 function startJoypad(wrapperEl, playerWs) {
 
-    Joypad = utils.newTwo(wrapperEl, WIDTH, HEIGHT, {
-      backgroundColor: BACKGROUND_COLOR
+    Joypad = new Two({
+      type: Two.Types.webgl,
+      width: WIDTH,
+      height: HEIGHT,
     })
+    utils.fitTwoToEl(Joypad, wrapperEl)
 
     Joypad.onGameInput = function(kwargs) {
       try {
