@@ -183,6 +183,25 @@ class Group extends Two.Group {
 }
 
 
+class Audio2 extends Audio {
+  constructor(src, kwargs) {
+    super(src)
+    this.preload = "auto"
+    assign(this, kwargs)
+    this.oncanplaythrough = () => this.loaded = true
+  }
+  play(kwargs) {
+    this.loop = (kwargs && kwargs.loop) === true
+    super.play()
+  }
+  replay() {
+    this.pause()
+    this.currentTime = 0
+    this.play()
+  }
+}
+
+
 export {
     urlAbsPath,
     newTwo,
@@ -197,4 +216,5 @@ export {
     // newFullscreenIcon,
     checkHit,
     Group,
+    Audio2,
 }

@@ -1,7 +1,7 @@
 const { abs, floor, min, atan2, PI, random } = Math
 
 import * as utils from './utils.mjs'
-const { Group, urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
+const { Group, Audio2, urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
 
 const WIDTH = 800
 const HEIGHT = 600
@@ -9,7 +9,7 @@ const FPS = 60  // hardcoded in Twojs
 const BACKGROUND_COLOR = "#111"
 
 const HERO_PARALYSIS_DUR = 2
-const VICTORY_SCORE = 2
+const VICTORY_SCORE = 20
 
 let Game = null
 
@@ -60,6 +60,14 @@ function startGame(wrapperEl, gameWs) {
     return Game
 }
 
+// Wallpaper by Kevin MacLeod | https://incompetech.com/
+// Music promoted by https://www.chosic.com/free-music/all/
+// Creative Commons CC BY 3.0
+// https://creativecommons.org/licenses/by/3.0/
+const music = addToLoads(new Audio2(urlAbsPath("assets/Wallpaper.opus"), { volume: .2 }))
+const ouchAud = addToLoads(new Audio2(urlAbsPath("assets/ouch.opus"), { volume: .5 }))
+const coinAud = addToLoads(new Audio2(urlAbsPath("assets/coin.opus"), { volume: 1 }))
+
 
 class GameScene extends Group {
 
@@ -85,6 +93,7 @@ class GameScene extends Group {
       this.addBackground()
       this.syncPlayers()
       this.addIntroTexts()
+      music.play({ loop: true })
     } else if(step === "COUNTDOWN") {
       this.introTexts.remove()
       addTo(this.notifs, new CountDown(3, () => this.setStep("GAME")))
@@ -200,6 +209,7 @@ class GameScene extends Group {
               { fill: "gold" }
             ))
             star.remove()
+            coinAud.replay()
             hero.score += 1
             this.scoresPanel.syncScores()
             if(hero.score >= VICTORY_SCORE) {
@@ -274,6 +284,11 @@ class GameScene extends Group {
   restart() {
     Game.setScene(new GameScene())
     Game.sendInput({ restart: true })
+  }
+
+  remove() {
+    super.remove()
+    music.pause()
   }
 }
 
@@ -377,8 +392,9 @@ class Hero extends Group {
   }
 
   onMonsterHit(time) {
-    if(this.isParalysed()) return
+    if(this.isParalysed(time)) return
     this.paralysisEndTime = time + HERO_PARALYSIS_DUR
+    ouchAud.replay()
   }
 
   isParalysed(time) {
