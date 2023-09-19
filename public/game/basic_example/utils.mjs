@@ -183,7 +183,7 @@ class Group extends Two.Group {
 }
 
 
-class Audio2 extends Audio {
+class GameAudio extends Audio {
   constructor(src, kwargs) {
     super(src)
     this.preload = "auto"
@@ -216,5 +216,5 @@ export {
     // newFullscreenIcon,
     checkHit,
     Group,
-    Audio2,
+    GameAudio,
 }

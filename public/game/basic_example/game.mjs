@@ -1,7 +1,7 @@
 const { abs, floor, min, atan2, PI, random } = Math
 
 import * as utils from './utils.mjs'
-const { Group, Audio2, urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
+const { Group, GameAudio, urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
 
 const WIDTH = 800
 const HEIGHT = 600
@@ -64,9 +64,10 @@ function startGame(wrapperEl, gameWs) {
 // Music promoted by https://www.chosic.com/free-music/all/
 // Creative Commons CC BY 3.0
 // https://creativecommons.org/licenses/by/3.0/
-const music = addToLoads(new Audio2(urlAbsPath("assets/Wallpaper.opus"), { volume: .2 }))
-const ouchAud = addToLoads(new Audio2(urlAbsPath("assets/ouch.opus"), { volume: .5 }))
-const coinAud = addToLoads(new Audio2(urlAbsPath("assets/coin.opus"), { volume: 1 }))
+const music = addToLoads(new GameAudio(urlAbsPath("assets/Wallpaper.opus"), { volume: .2 }))
+
+const ouchAud = addToLoads(new GameAudio(urlAbsPath("assets/ouch.opus"), { volume: .5 }))
+const coinAud = addToLoads(new GameAudio(urlAbsPath("assets/coin.opus"), { volume: 1 }))
 
 
 class GameScene extends Group {
