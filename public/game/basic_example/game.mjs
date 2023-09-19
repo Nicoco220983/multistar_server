@@ -220,9 +220,8 @@ class GameScene extends Group {
               star.translation.x, star.translation.y,
               { fill: "gold" }
             ))
-            star.remove()
-            coinAud.replay()
-            hero.score += 1
+            star.onHeroHit(hero)
+            hero.onStarHit(star)
             this.scoresPanel.syncScores()
             if(hero.score >= VICTORY_SCORE) {
               this.winnerHero = hero
@@ -398,7 +397,7 @@ class Hero extends Group {
     else if(hitAngle >= -.75 && hitAngle < -.25) {
       this.spdY = abs(this.spdY)
     }
-    else if(hitAngle > .75 || hitAngle < -.75) {
+    else {
       this.spdX = abs(this.spdX)
     }
   }
@@ -407,6 +406,10 @@ class Hero extends Group {
     if(this.isParalysed(time)) return
     this.paralysisEndTime = time + HERO_PARALYSIS_DUR
     ouchAud.replay()
+  }
+
+  onStarHit(star) {
+    this.score += 1
   }
 
   isParalysed(time) {
@@ -448,6 +451,11 @@ class Star extends Two.Sprite {
       width,
       height,
     }
+  }
+
+  onHeroHit(hero) {
+    this.remove()
+    coinAud.replay()
   }
 }
 
