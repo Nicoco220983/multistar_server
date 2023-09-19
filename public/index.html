@@ -87,13 +87,13 @@
             gameWs.addEventListener('message', evt => {
                 const key = evt.data.substring(0, Consts.MSG_KEY_LENGTH)
                 const data = evt.data.substring(Consts.MSG_KEY_LENGTH)
-                if(key === Consts.MSG_KEYS.IDENTIFY_GAME) handleGameIdentification(JSON.parse(data))
-                else if(key === Consts.MSG_KEYS.SYNC_PLAYERS) handleSyncPlayers(JSON.parse(data))
-                else if(key === Consts.MSG_KEYS.JOYPAD_INPUT) handleJoypadInput(data)
+                if(key === Consts.MSG_KEYS.IDENTIFY_GAME) onGameIdentification(JSON.parse(data))
+                else if(key === Consts.MSG_KEYS.SYNC_PLAYERS) onSyncPlayers(JSON.parse(data))
+                else if(key === Consts.MSG_KEYS.JOYPAD_INPUT) onJoypadInput(data)
                 else console.warn("Unknown websocket key", key)
             })
 
-            gameWs.addEventListener('close', handleCloseConnection)
+            gameWs.addEventListener('close', onCloseConnection)
 
             gameWs.addEventListener('error', console.error)
 
@@ -102,7 +102,7 @@
             }
         }
 
-        function handleGameIdentification(kwargs) {
+        function onGameIdentification(kwargs) {
             gameWs.roomId = kwargs.roomId
             console.log(`Identified as game for room '${gameWs.roomId}'`)
             gameWs.joypadUrl = new URL(`room/${gameWs.roomId}`, window.location.href)
@@ -110,19 +110,19 @@
             for(let i=0; i<nbEmbeddedJoypads; ++i) addEmbeddedJoypad(gameWs.joypadUrl)
         }
 
-        function handleSyncPlayers(kwargs) {
+        function onSyncPlayers(kwargs) {
             players = kwargs
             if(game) game.syncPlayers(players)
         }
 
-        function handleJoypadInput(data) {
+        function onJoypadInput(data) {
             const idx = data.indexOf(':')
             const playerId = data.substring(0, idx)
             const kwargs = JSON.parse(data.substring(idx+1))
-            if(game) game.handleJoypadInput(playerId, kwargs)
+            if(game) game.onJoypadInput(playerId, kwargs)
         }
 
-        function handleCloseConnection() {
+        function onCloseConnection() {
             for(const el of [wrapperEl, joypadsEl, menuEl]) el.style.display = "none"
             disconnectedEl.style.display = ""
         }

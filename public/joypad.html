@@ -113,14 +113,14 @@
             playerWs.addEventListener('message', evt => {
                 const key = evt.data.substring(0, Consts.MSG_KEY_LENGTH)
                 const data = evt.data.substring(Consts.MSG_KEY_LENGTH)
-                if(key === Consts.MSG_KEYS.GAME_INPUT) handleGameInput(JSON.parse(data))
-                else if(key === Consts.MSG_KEYS.IDENTIFY_PLAYER) handleIdentifyPlayer(JSON.parse(data))
-                else if(key === Consts.MSG_KEYS.START_GAME) handleStartGame(JSON.parse(data))
-                else if(key === Consts.MSG_KEYS.SYNC_PLAYERS) handleSyncPlayers(JSON.parse(data))
+                if(key === Consts.MSG_KEYS.GAME_INPUT) onGameInput(JSON.parse(data))
+                else if(key === Consts.MSG_KEYS.IDENTIFY_PLAYER) onIdentifyPlayer(JSON.parse(data))
+                else if(key === Consts.MSG_KEYS.START_GAME) onStartGame(JSON.parse(data))
+                else if(key === Consts.MSG_KEYS.SYNC_PLAYERS) onSyncPlayers(JSON.parse(data))
                 else console.warn("Unknown websocket key", key)
             })
 
-            playerWs.addEventListener('close', handleCloseConnection)
+            playerWs.addEventListener('close', onCloseConnection)
 
             playerWs.addEventListener('error', console.error)
 
@@ -154,27 +154,27 @@
             if(gameKey) startJoypad(gameKey)
         }
 
-        function handleIdentifyPlayer(kwargs) {
+        function onIdentifyPlayer(kwargs) {
             playerWs.player = kwargs
             idEl.querySelector(".player_name").placeholder = playerWs.player.name
             colorPickerEl.syncColor(playerWs.player.color)
         }
 
-        function handleStartGame(kwargs) {
+        function onStartGame(kwargs) {
             gameKey = kwargs.gameKey
             console.log(`Game set to '${gameKey}'`)
             if(step === "GAME") startJoypad(gameKey)
         }
 
-        function handleSyncPlayers(kwargs) {
+        function onSyncPlayers(kwargs) {
             players = kwargs
         }
 
-        function handleGameInput(kwargs) {
-            if(joypad) joypad.handleGameInput(kwargs)
+        function onGameInput(kwargs) {
+            if(joypad) joypad.onGameInput(kwargs)
         }
 
-        function handleCloseConnection() {
+        function onCloseConnection() {
             for(const el of [idEl, colorPickerEl, wrapperEl, gamesMenuEl]) el.style.display = "none"
             disconnectedEl.style.display = ""
         }

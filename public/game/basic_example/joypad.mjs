@@ -18,9 +18,9 @@ function startJoypad(wrapperEl, playerWs) {
       backgroundColor: BACKGROUND_COLOR
     })
 
-    Joypad.handleGameInput = function(kwargs) {
+    Joypad.onGameInput = function(kwargs) {
       try {
-        this._scene.handleGameInput(kwargs)
+        this._scene.onGameInput(kwargs)
       } catch(err) {
         console.log(err)
       }
@@ -113,7 +113,7 @@ class JoypadScene extends Group {
     }
   }
 
-  handleGameInput(kwargs) {
+  onGameInput(kwargs) {
     if(kwargs.step) {
       this.setStep(kwargs.step)
     }

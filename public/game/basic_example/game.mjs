@@ -34,9 +34,9 @@ function startGame(wrapperEl, gameWs) {
       }
     }
 
-    Game.handleJoypadInput = function(playerId, kwargs) {
+    Game.onJoypadInput = function(playerId, kwargs) {
       try {
-        this._scene.handleJoypadInput(playerId, kwargs)
+        this._scene.onJoypadInput(playerId, kwargs)
       } catch(err) {
         console.log(err)
       }
@@ -261,9 +261,9 @@ class GameScene extends Group {
     ))
   }
 
-  handleJoypadInput(playerId, kwargs) {
+  onJoypadInput(playerId, kwargs) {
     const hero = this.getHero(playerId)
-    hero.handleJoypadInput(kwargs)
+    hero.onJoypadInput(kwargs)
     if(kwargs.ready !== undefined) {
       if(this.step === "INTRO") this.setHeroReady(hero, kwargs.ready)
     }
@@ -401,7 +401,7 @@ class Hero extends Group {
     return time < this.paralysisEndTime
   }
 
-  handleJoypadInput(kwargs) {
+  onJoypadInput(kwargs) {
     if(kwargs.dir !== undefined) {
       this.spdX = abs(this.spdX) * (kwargs.dir === 0 ? -1 : 1)
     }

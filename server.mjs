@@ -9,7 +9,6 @@ import express from "express"
 import { WebSocketServer } from 'ws'
 
 import Consts from './public/consts.mjs'
-// import { Game } from './public/game.mjs'
 
 const PROD = process.env.PROD ? true : false
 const PORT = process.env.PORT || PROD ? 80 : 3000
@@ -66,11 +65,11 @@ class GameServer {
         const msg = isBinary ? data : data.toString()
         const key = msg.substring(0, Consts.MSG_KEY_LENGTH)
         const body = msg.substring(Consts.MSG_KEY_LENGTH)
-        if(key === Consts.MSG_KEYS.JOYPAD_INPUT) this.handleJoypadInput(ws, body)
-        else if(key === Consts.MSG_KEYS.GAME_INPUT) this.handleGameInput(ws, body)
-        else if(key === Consts.MSG_KEYS.IDENTIFY_GAME) this.handleIdentifyGame(ws)
-        else if(key === Consts.MSG_KEYS.IDENTIFY_PLAYER) this.handleIdentifyPlayer(ws, JSON.parse(body))
-        else if(key === Consts.MSG_KEYS.START_GAME) this.handleStartGame(ws, JSON.parse(body))
+        if(key === Consts.MSG_KEYS.JOYPAD_INPUT) this.onJoypadInput(ws, body)
+        else if(key === Consts.MSG_KEYS.GAME_INPUT) this.onGameInput(ws, body)
+        else if(key === Consts.MSG_KEYS.IDENTIFY_GAME) this.onIdentifyGame(ws)
+        else if(key === Consts.MSG_KEYS.IDENTIFY_PLAYER) this.onIdentifyPlayer(ws, JSON.parse(body))
+        else if(key === Consts.MSG_KEYS.START_GAME) this.onStartGame(ws, JSON.parse(body))
         else console.warn("Unknown websocket key", key)
       })
     
@@ -78,7 +77,7 @@ class GameServer {
     
       ws.on('close', () => {
         console.log(`Client '${ws.id}' disconnected`)
-        this.handleClientDeconnection(ws)
+        this.onClientDeconnection(ws)
       })
     })
   }
@@ -96,7 +95,7 @@ class GameServer {
     }
   }
 
-  handleIdentifyGame(ws) {
+  onIdentifyGame(ws) {
     ws.type = "game"
     const roomId = this.generateRoomId()
     ws.room = this.rooms[roomId] = new Room(
@@ -108,7 +107,7 @@ class GameServer {
     }))
   }
 
-  handleIdentifyPlayer(ws, kwargs) {
+  onIdentifyPlayer(ws, kwargs) {
     if(!ws.room) {
       ws.type = "player"
       const { roomId } = kwargs
@@ -138,7 +137,7 @@ class GameServer {
     }
   }
 
-  handleStartGame(ws, kwargs) {
+  onStartGame(ws, kwargs) {
     const { gameKey } = kwargs
     const { room } = ws
     if(!room || room.closed) { ws.close(); return }
@@ -149,7 +148,7 @@ class GameServer {
     }))
   }
 
-  handleClientDeconnection(ws) {
+  onClientDeconnection(ws) {
     const { room } = ws
     if(!room || room.closed) { ws.close(); return }
     if(ws.type === "game") {
@@ -166,73 +165,17 @@ class GameServer {
     }
   }
 
-  handleJoypadInput(ws, body) {
+  onJoypadInput(ws, body) {
     const { room } = ws
     if(!room || room.closed) { ws.close(); return }
     room.sendToGame(Consts.MSG_KEYS.JOYPAD_INPUT + ws.id + ':' + body)
   }
 
-  handleGameInput(ws, body) {
+  onGameInput(ws, body) {
     const { room } = ws
     if(!room || room.closed) { ws.close(); return }
     room.sendToPlayers(Consts.MSG_KEYS.GAME_INPUT + body)
   }
-
-  // startGame(key) {
-  //   const game = new Game({
-  //     name,
-  //     isClient: false
-  //   })
-  //   game.websockets = {}
-
-  //   game.loopId = setInterval(() => {
-  //     game.update(1 / Consts.SERVER_UPDATE_RATE)
-  //     this.sendGameUpdates(game)
-  //   }, 1000 / Consts.SERVER_UPDATE_RATE)
-
-  //   return game
-  // }
-
-  // addPlayerToGame(ws, kwargs) {
-  //   const { playerName, gameName } = kwargs
-  //   let game = this.games[gameName]
-  //   if(!game) {
-  //     console.log(`Create game '${gameName}'`)
-  //     game = this.games[gameName] = this.startGame(gameName)
-  //   }
-  //   console.log(`Add player '${ws.id}' with name '${playerName}' to game '${gameName}'`)
-  //   ws.game = game
-  //   game.websockets[ws.id] = ws
-  //   game.addPlayer(ws.id, playerName)
-  //   ws.send(Consts.MSG_KEYS.ASSIGN_PLAYER + ws.id)
-  // }
-
-  // rmPlayerFromGame(ws) {
-  //   console.log(`Remove player '${ws.id}' from game '${ws.game.name}'`)
-  //   ws.game.rmPlayer(ws.id)
-  //   delete ws.game.websockets[ws.id]
-  //   if(Object.keys(ws.game.websockets).length === 0) {
-  //     console.log(`Delete game '${ws.game.name}'`)
-  //     this.stopGame(ws.game)
-  //   }
-  // }
-
-  // stopGame(game) {
-  //   delete this.games[game.name]
-  //   clearInterval(game.loopId)
-  // }
-
-  // handlePlayerInput(ws, data) {
-  //   ws.game.onInput(ws.id, data)
-  // }
-
-  // sendGameUpdates(game) {
-  //   const state = game.toState()
-  //   Object.keys(game.websockets).forEach(id => {
-  //     const socket = game.websockets[id]
-  //     socket.send(Consts.MSG_KEYS.GAME_UPDATE + JSON.stringify(state))
-  //   })
-  // }
 }
 
 
@@ -293,68 +236,3 @@ const gameServer = new GameServer()
 gameServer.serve()
 const localIp = Object.values(getLocalIps())[0]
 console.log(`Server started at: http://${localIp}:${PORT}`)
-
-// const app = express()
-// app.use(express.static('public'))
-
-// const port = process.env.PORT || 3000
-// const server = app.listen(port)
-// console.log(`Server listening on port ${port}`)
-
-// const wss = new WebSocketServer({ server })
-// const Sockets = {}
-
-// wss.on('connection', ws => {
-//   onConnect(ws)
-
-//   ws.on('message', (data, isBinary) => {
-//     const msg = isBinary ? data : data.toString()
-//     const key = msg.substring(0, Consts.MSG_KEY_LENGTH)
-//     const body = msg.substring(Consts.MSG_KEY_LENGTH)
-//     if(key === Consts.MSG_KEYS.JOIN_GAME) joinGame(ws, body)
-//     else if(key === Consts.MSG_KEYS.INPUT) handleInput(ws, body)
-//     else console.warn("Unknown websocket key", key)
-//   })
-
-//   ws.on('error', console.error)
-
-//   ws.on('close', () => onDisconnect(ws))
-// })
-
-// const game = new Game({
-//   isClient: false
-// })
-
-// function joinGame(ws, username) {
-//   game.addPlayer(ws.id, username)
-// }
-
-// function handleInput(ws, data) {
-//   game.onInput(ws.id, JSON.parse(data))
-// }
-
-// function onConnect(ws) {
-//   ws.id = crypto.randomBytes(16).toString("hex")
-//   console.log('Player connected!', ws.id)
-//   Sockets[ws.id] = ws
-// }
-
-// function onDisconnect(ws) {
-//   console.log('Player disconnected!', ws.id)
-//   delete Sockets[ws.id]
-//   game.rmPlayer(ws.id)
-// }
-
-// function sendUpdates() {
-//   const state = game.toState()
-//   Object.keys(Sockets).forEach(id => {
-//     const socket = Sockets[id]
-//     const player = game.players.items[id]
-//     socket.send(Consts.MSG_KEYS.GAME_UPDATE + JSON.stringify(state))
-//   })
-// }
-
-// setInterval(() => {
-//   game.update(1 / Consts.SERVER_UPDATE_RATE)
-//   sendUpdates()
-// }, 1000 / Consts.SERVER_UPDATE_RATE)
