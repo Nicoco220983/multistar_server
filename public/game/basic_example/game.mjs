@@ -1,4 +1,4 @@
-const { abs, floor, min, atan2, PI, random } = Math
+const { abs, floor, min, max, atan2, PI, random } = Math
 
 import * as utils from './utils.mjs'
 const { Group, GameAudio, addTo, urlAbsPath, addToLoads, checkAllLoadsDone, checkHit } = utils
@@ -235,10 +235,18 @@ class GameScene extends Group {
 
   checkHerosMonstersHit(time) {
     for(const hero of this.heros.children) {
-      for(const monster of this.monsters.children) {
-        if(checkHit(hero, monster)) {
-          hero.onMonsterHit(time)
-        }
+      if(!hero.isParalysed(time)) {
+        for(const monster of this.monsters.children) {
+          if(checkHit(hero, monster)) {
+            addTo(this.notifs, new Notif(
+              "- 1",
+              hero.translation.x, hero.translation.y,
+              { fill: "red" }
+            ))
+            hero.onMonsterHit(time)
+            this.scoresPanel.syncScores()
+		  }
+		}
       }
     }
   }
@@ -403,8 +411,8 @@ class Hero extends Group {
   }
 
   onMonsterHit(time) {
-    if(this.isParalysed(time)) return
     this.paralysisEndTime = time + HERO_PARALYSIS_DUR
+    this.score = max(0, this.score - 1)
     ouchAud.replay()
   }
 
