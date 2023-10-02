@@ -1,5 +1,9 @@
 # MultiStar Server
 
+<p align="center">
+  <img src="./public/logo.jpg" alt="MultiStar"/>
+</p>
+
 __MultiStar__ is a webserver, written in node, hosting local multiplayer games.
 
 "Local multiplayer" means that all the players of a game play on the same screen in a same room, each with their own joypad. I believe that this "old-school" way of playing multiplayer games is more funny and friendly.
