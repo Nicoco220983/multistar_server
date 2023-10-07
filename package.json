@@ -1,17 +1,17 @@
 {
-  "name": "mvp_local_multiplayer_game_server",
+  "name": "multistar_server",
   "version": "0.0.1",
-  "description": "Minimum Viable Product of local multiplayer game server",
+  "description": "WebServer hosting local multiplayers JS games",
   "main": "server.mjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "install_game": "scripts/install_game.js",
     "start": "node server.mjs"
   },
   "author": "Nicolas CARREZ",
   "license": "ISC",
   "dependencies": {
     "express": "^4.18.2",
-    "two.js": "^0.8.10",
     "ws": "^8.13.0"
   }
 }

@@ -10,7 +10,25 @@ __MultiStar__ is a webserver, written in node, hosting local multiplayer games.
 
 The joypads can be nothing more than a smartphone, connected to the game joypad webpage. Thus, no specific hardware is required, as almost everybody today has a smartphone.
 
-## Run the server
+## How to
+
+### Install the server
+
+```
+npm install
+```
+
+### Install a game
+
+Here we install a [Basic Example Game](https://github.com/Nicoco220983/multistar_basic_example_game) from GitHub.
+
+This command can accept any kind of argument accepted by `npm install` (NPM package, GitHub link, local directory...).
+
+```
+npm run install_game -- https://github.com/Nicoco220983/multistar_basic_example_game
+```
+
+### Start the server
 
 ```
 npm start

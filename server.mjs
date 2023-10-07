@@ -1,9 +1,11 @@
 const { floor, random } = Math
 
 import { join, dirname } from "path"
+import fs from "fs"
 import { fileURLToPath } from "url"
 import crypto from "crypto"
 import { networkInterfaces } from "os"
+import path from "path"
 
 import express from "express"
 import { WebSocketServer } from 'ws'
@@ -14,12 +16,7 @@ const PROD = process.env.PROD ? true : false
 const PORT = process.env.PORT || PROD ? 80 : 3000
 const DIRNAME = dirname(fileURLToPath(import.meta.url))
 
-
-const games = {
-  "basic_example": {
-    title: "Basic Example"
-  }
-}
+const games = initGames()
 
 
 class GameServer {
@@ -208,6 +205,23 @@ class Room {
     }
     return res
   }
+}
+
+
+function initGames() {
+  const games = {}
+  for(const dirent of fs.readdirSync(path.join(DIRNAME, 'public/game'), { withFileTypes: true })) {
+    try {
+      if(!dirent.isSymbolicLink()) continue
+      const gameRelPath = path.join(dirent.path, dirent.name)
+      const confPath = path.join(fs.realpathSync(gameRelPath), '../multistar.json')
+      const conf = JSON.parse(fs.readFileSync(confPath))
+      games[conf.key] = conf
+    } catch(err) {
+      console.error(err)
+    }
+  }
+  return games
 }
 
 
