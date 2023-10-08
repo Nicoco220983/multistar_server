@@ -12,14 +12,14 @@
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                justify-content: space-around;
+                justify-content: space-evenly;
                 gap: .5em;
             }
             .flexrow {
                 display: flex;
                 flex-direction: row;
                 align-items: center;
-                justify-content: space-around;
+                justify-content: space-evenly;
                 gap: .5em;
             }
             .fill {
@@ -48,7 +48,7 @@
         <!-- <script src="two.min.js"></script> -->
         <script type="module" src="games-menu.mjs"></script>
     </head>
-    <body class="flexcol">
+    <body class="flexcol" style="padding: .5em; justify-content:start">
         <div id="fullscreen_wrapper" class="flexcol">
             <div id="aspect_ratio_wrapper" class="flexcol"></div>
         </div>
@@ -70,7 +70,8 @@
         let game = null
         let players = null
 
-        const wrapperEl = document.getElementById("aspect_ratio_wrapper")
+        const fsEl = document.getElementById("aspect_ratio_wrapper")
+        const gameEl = document.getElementById("aspect_ratio_wrapper")
         const joypadsEl = document.getElementById("joypads")
         const menuEl = document.getElementById("menu")
         const disconnectedEl = document.getElementById("disconnected")
@@ -123,7 +124,7 @@
         }
 
         function onCloseConnection() {
-            for(const el of [wrapperEl, joypadsEl, menuEl]) el.style.display = "none"
+            for(const el of [fsEl, joypadsEl, menuEl]) el.style.display = "none"
             disconnectedEl.style.display = ""
         }
 
@@ -143,8 +144,8 @@
 
         async function startGame(gameKey) {
             const src = await import(`/game/${gameKey}/game.mjs`)
-            wrapperEl.innerHTML = ""
-            game = src.startGame(wrapperEl, gameWs)
+            gameEl.innerHTML = ""
+            game = src.startGame(gameEl, gameWs)
             if(players) game.syncPlayers(players)
             gameWs.send(Consts.MSG_KEYS.START_GAME + JSON.stringify({
                 gameKey,
@@ -152,9 +153,9 @@
         }
 
         function addFullscreenEventListerner() {
-            wrapperEl.addEventListener("click", evt => {
+            gameEl.addEventListener("click", evt => {
                 if(!document.fullscreenElement) {
-                    wrapperEl.parentElement.requestFullscreen()
+                    fsEl.requestFullscreen()
                     evt.preventDefault()
                 }
             })
