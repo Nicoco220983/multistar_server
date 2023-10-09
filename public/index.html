@@ -45,11 +45,12 @@
                 max-width: 400px;
             }
         </style>
-        <!-- <script src="two.min.js"></script> -->
+        <script src="qrcode.min.js"></script>
         <script type="module" src="games-menu.mjs"></script>
     </head>
     <body class="flexcol" style="padding: .5em; justify-content:start">
-        <div id="fullscreen_wrapper" class="flexcol">
+        <div id="qrcode"></div>
+        <div id="fullscreen_wrapper" class="flexcol" style="display: none">
             <div id="aspect_ratio_wrapper" class="flexcol"></div>
         </div>
         <div id="joypads" class="flexcol" style="display: none"></div>
@@ -70,7 +71,8 @@
         let game = null
         let players = null
 
-        const fsEl = document.getElementById("aspect_ratio_wrapper")
+        const qrcodeEl = document.getElementById("qrcode")
+        const fsEl = document.getElementById("fullscreen_wrapper")
         const gameEl = document.getElementById("aspect_ratio_wrapper")
         const joypadsEl = document.getElementById("joypads")
         const menuEl = document.getElementById("menu")
@@ -107,7 +109,13 @@
             gameWs.roomId = kwargs.roomId
             console.log(`Identified as game for room '${gameWs.roomId}'`)
             gameWs.joypadUrl = new URL(`room/${gameWs.roomId}`, window.location.href)
-            console.log(`Joypad URL: ${gameWs.joypadUrl }`)
+            console.log(`Joypad URL: ${gameWs.joypadUrl}`)
+            new QRCode(qrcodeEl, {
+                text: gameWs.joypadUrl.toString(),
+                width: 500,
+                height: 500,
+            })
+            gameWs.joypadUrlQrCode = qrcodeEl.querySelector("img")
             for(let i=0; i<nbEmbeddedJoypads; ++i) addEmbeddedJoypad(gameWs.joypadUrl)
         }
 
@@ -124,7 +132,7 @@
         }
 
         function onCloseConnection() {
-            for(const el of [fsEl, joypadsEl, menuEl]) el.style.display = "none"
+            for(const el of [qrcodeEl, fsEl, joypadsEl, menuEl]) el.style.display = "none"
             disconnectedEl.style.display = ""
         }
 
@@ -144,6 +152,8 @@
 
         async function startGame(gameKey) {
             const src = await import(`/game/${gameKey}/game.mjs`)
+            qrcodeEl.style.display = "none"
+            fsEl.style.display = ""
             gameEl.innerHTML = ""
             game = src.startGame(gameEl, gameWs)
             if(players) game.syncPlayers(players)
