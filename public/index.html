@@ -25,22 +25,32 @@
             .fill {
                 flex: 1;
             }
+            section#header #title {
+                font-size: 5em;
+                font-weight: bold;
+                background-image: linear-gradient(45deg, #a4f7ff, #711eef, #f41ce9);
+                background-clip: text;
+                color: transparent;
+            }
+            section#header img {
+                width: 150px;
+            }
             #aspect_ratio_wrapper {
                 outline: 1px solid lightgrey;
                 width: 500px;
                 height: 500px;
             }
-            #joypads {
-                width: 90%;
+            section#joypads {
+                width: 600px;
             }
-            #joypads iframe {
+            section#joypads iframe {
                 width: 100%;
                 aspect-ratio: 16 / 9;
             }
-            #disconnected {
+            section#disconnected {
                 width: 100%;
             }
-            #disconnected_img {
+            section#disconnected img {
                 width: 50%;
                 max-width: 400px;
             }
@@ -48,17 +58,28 @@
         <script src="qrcode.min.js"></script>
         <script type="module" src="games-menu.mjs"></script>
     </head>
-    <body class="flexcol" style="padding: .5em; justify-content:start">
-        <div id="qrcode"></div>
-        <div id="fullscreen_wrapper" class="flexcol" style="display: none">
+    <body class="flexcol" style="padding: 1em; gap: 1em; justify-content:start">
+        <section id="header" class="flexrow" style="gap: 2em">
+            <img src="logo.jpg"/>
+            <div id="title">MultiStar</div>
+        </section>
+        <section id="join" class="flexcol">
+            <h2>Join the room:</h2>
+            <div id="qrcode"></div>
+            <div id="joypad_url" style="font-weight:bold; font-size:1.3em"></div>
+        </section>
+        <section id="game" class="flexcol" style="display: none">
             <div id="aspect_ratio_wrapper" class="flexcol"></div>
-        </div>
-        <div id="joypads" class="flexcol" style="display: none"></div>
-        <div id="menu" class="flexcol"></div>
-        <div id="disconnected" class="flexcol fill" style="display: none; justify-content: center; ">
-            <img id="disconnected_img" src="/assets/disconnected.png">
+        </section>
+        <section id="joypads" class="flexcol" style="display: none"></section>
+        <section id="games_menu" class="flexcol">
+            <h2>Select a game:</h2>
+            <games-menu></games-menu>
+        </section>
+        <section id="disconnected" class="flexcol fill" style="display: none; justify-content: center">
+            <img src="/assets/disconnected.png">
             <div>You have been <b>disconnected</b> !</div>
-        </div>
+        </section>
     </body>
     <script type="module">
 
@@ -67,16 +88,7 @@
         const urlParams = new URLSearchParams(window.location.search)
         const nbEmbeddedJoypads  = parseInt(urlParams.get('joypad') || '0')
 
-        let gameWs = null
-        let game = null
-        let players = null
-
-        const qrcodeEl = document.getElementById("qrcode")
-        const fsEl = document.getElementById("fullscreen_wrapper")
-        const gameEl = document.getElementById("aspect_ratio_wrapper")
-        const joypadsEl = document.getElementById("joypads")
-        const menuEl = document.getElementById("menu")
-        const disconnectedEl = document.getElementById("disconnected")
+        let gameWs = null, game = null, players = null
 
         function initGameWebsocket() {
             const socketProtocol = (window.location.protocol.includes('https')) ? 'wss' : 'ws'
@@ -110,13 +122,15 @@
             console.log(`Identified as game for room '${gameWs.roomId}'`)
             gameWs.joypadUrl = new URL(`room/${gameWs.roomId}`, window.location.href)
             console.log(`Joypad URL: ${gameWs.joypadUrl}`)
+            const qrcodeEl = document.getElementById("qrcode")
             new QRCode(qrcodeEl, {
                 text: gameWs.joypadUrl.toString(),
-                width: 500,
-                height: 500,
+                width: 200,
+                height: 200,
             })
             gameWs.joypadUrlQrCode = qrcodeEl.querySelector("img")
-            for(let i=0; i<nbEmbeddedJoypads; ++i) addEmbeddedJoypad(gameWs.joypadUrl)
+            document.getElementById("joypad_url").innerText = gameWs.joypadUrl
+            addEmbeddedJoypads(gameWs.joypadUrl)
         }
 
         function onSyncPlayers(kwargs) {
@@ -132,30 +146,35 @@
         }
 
         function onCloseConnection() {
-            for(const el of [qrcodeEl, fsEl, joypadsEl, menuEl]) el.style.display = "none"
-            disconnectedEl.style.display = ""
+            if(game) game.remove()
+            document.querySelectorAll("section").forEach(el => el.style.display = "none")
+            document.querySelector("section#disconnected").style.display = ""
         }
 
-        function addEmbeddedJoypad(joypadUrl) {
-            const iframeEl = document.createElement("iframe")
-            iframeEl.src = `${joypadUrl}?fs=0`
-            joypadsEl.appendChild(iframeEl)
+        function addEmbeddedJoypads(joypadUrl) {
+            const joypadsEl = document.querySelector("section#joypads")
+            for(let i=0; i<nbEmbeddedJoypads; ++i) {
+                const iframeEl = document.createElement("iframe")
+                iframeEl.src = `${joypadUrl}?fs=0`
+                joypadsEl.appendChild(iframeEl)
+            }
             joypadsEl.style.display = ""
         }
 
         function initGamesMenu() {
-            const gamesMenuEl = document.createElement("games-menu")
-            gamesMenuEl.onSelect = gameKey => startGame(gameKey)
-            menuEl.innerHTML = ""
-            menuEl.appendChild(gamesMenuEl)
+            document.querySelector("games-menu").onSelect = gameKey => startGame(gameKey)
         }
 
         async function startGame(gameKey) {
             const src = await import(`/game/${gameKey}/game.mjs`)
-            qrcodeEl.style.display = "none"
-            fsEl.style.display = ""
-            gameEl.innerHTML = ""
-            game = src.startGame(gameEl, gameWs)
+            document.querySelectorAll("section").forEach(el => el.style.display = "none")
+            document.querySelector("section#header").style.display = ""
+            document.querySelector("section#game").style.display = ""
+            document.querySelector("section#games_menu").style.display = ""
+            if(nbEmbeddedJoypads > 0) document.querySelector("section#joypads").style.display = ""
+            const wrapperEl = document.querySelector("#aspect_ratio_wrapper")
+            wrapperEl.innerHTML = ""
+            game = src.startGame(wrapperEl, gameWs)
             if(players) game.syncPlayers(players)
             gameWs.send(Consts.MSG_KEYS.START_GAME + JSON.stringify({
                 gameKey,
@@ -163,10 +182,10 @@
         }
 
         function addFullscreenEventListerner() {
-            gameEl.addEventListener("click", evt => {
+            document.querySelector("#aspect_ratio_wrapper").addEventListener("click", evt => {
                 if(!document.fullscreenElement) {
-                    fsEl.requestFullscreen()
-                    evt.preventDefault()
+                    document.querySelector("section#game").requestFullscreen()
+                    evt.stopPropagation()
                 }
             })
         }

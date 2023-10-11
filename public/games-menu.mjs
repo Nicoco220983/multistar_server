@@ -25,6 +25,9 @@ class GamesMenu extends HTMLElement {
                     box-shadow: 0 0 10px lightgrey;
                     cursor: pointer;
                 }
+                .game:hover {
+                    box-shadow: 0 0 15px grey;
+                }
                 .title {
                     font-weight: bold;
                 }
@@ -37,8 +40,8 @@ class GamesMenu extends HTMLElement {
                 <template id="gametmpl">
                     <div class="game">
                         <div class="title"></div>
-                        <div class="description"></div>
                         <img class="icon">
+                        <div class="description"></div>
                     </div>
                 </template>
             </div>
