@@ -8,19 +8,17 @@
                 margin: 0;
                 height: 100%;
             }
-            .flexcol {
+            .flexcol, .flexrow {
                 display: flex;
-                flex-direction: column;
                 align-items: center;
                 justify-content: space-evenly;
                 gap: .5em;
             }
+            .flexcol {
+                flex-direction: column;
+            }
             .flexrow {
-                display: flex;
                 flex-direction: row;
-                align-items: center;
-                justify-content: space-evenly;
-                gap: .5em;
             }
             .fill {
                 flex: 1;
