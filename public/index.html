@@ -23,14 +23,16 @@
             .fill {
                 flex: 1;
             }
-            section#header #title {
+            .header .title {
                 font-size: 5em;
                 font-weight: bold;
+            }
+            .header .title.colored {
                 background-image: linear-gradient(45deg, #a4f7ff, #711eef, #f41ce9);
                 background-clip: text;
                 color: transparent;
             }
-            section#header img {
+            .header img {
                 width: 150px;
             }
             #aspect_ratio_wrapper {
@@ -57,14 +59,14 @@
         <script type="module" src="games-menu.mjs"></script>
     </head>
     <body class="flexcol" style="padding: 1em; gap: 1em; justify-content:start">
-        <section id="header" class="flexrow" style="gap: 2em">
+        <section class="header flexrow" style="gap: 2em">
             <img src="logo.jpg"/>
-            <div id="title">MultiStar</div>
+            <div class="title colored">MultiStar</div>
         </section>
         <section id="join" class="flexcol">
             <h2>Join the room:</h2>
             <div id="qrcode"></div>
-            <div id="joypad_url" style="font-weight:bold; font-size:1.3em"></div>
+            <div id="joypad_url" style="font-weight:bold; font-size:1.3em; padding: .5em"></div>
         </section>
         <section id="game" class="flexcol" style="display: none">
             <div id="aspect_ratio_wrapper" class="flexcol"></div>
@@ -74,9 +76,12 @@
             <h2>Select a game:</h2>
             <games-menu></games-menu>
         </section>
-        <section id="disconnected" class="flexcol fill" style="display: none; justify-content: center">
-            <img src="/assets/disconnected.png">
-            <div>You have been <b>disconnected</b> !</div>
+        <section id="error" class="flexcol fill" style="display: none; justify-content: center">
+            <div class="header flexrow" style="gap: 2em">
+                <img src="broken_joypad.png" />
+                <div class="title">MultiStar</div>
+            </div>
+            <div class="text flexrow fill" style="font-size: 1.5em"></div>
         </section>
     </body>
     <script type="module">
@@ -145,8 +150,7 @@
 
         function onCloseConnection() {
             if(game) game.remove()
-            document.querySelectorAll("section").forEach(el => el.style.display = "none")
-            document.querySelector("section#disconnected").style.display = ""
+            showError("You have been <b>disconnected</b> ! 😵")
         }
 
         function addEmbeddedJoypads(joypadUrl) {
@@ -166,7 +170,7 @@
         async function startGame(gameKey) {
             const src = await import(`/game/${gameKey}/game.mjs`)
             document.querySelectorAll("section").forEach(el => el.style.display = "none")
-            document.querySelector("section#header").style.display = ""
+            document.querySelector("section.header").style.display = ""
             document.querySelector("section#game").style.display = ""
             document.querySelector("section#games_menu").style.display = ""
             if(nbEmbeddedJoypads > 0) document.querySelector("section#joypads").style.display = ""
@@ -186,6 +190,13 @@
                     evt.stopPropagation()
                 }
             })
+        }
+
+        function showError(msg) {
+            document.querySelectorAll("section").forEach(el => el.style.display = "none")
+            const errSection = document.querySelector("section#error")
+            errSection.style.display = ""
+            errSection.querySelector(".text").innerHTML = msg
         }
 
         addFullscreenEventListerner()

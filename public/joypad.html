@@ -98,13 +98,11 @@
             <div id="aspect_ratio_wrapper" class="flexcol"></div>
         </section>
         <section id="error" class="flexcol fill" style="display: none; justify-content: center">
-            <div class="header flexcol" style="padding:1em; gap: .5em">
+            <div class="header flexresp" style="padding:1em; gap: .5em">
                 <img src="../broken_joypad.png" />
                 <div class="title">MultiStar</div>
             </div>
-            <div class="text flexcol fill" style="font-size: 1.5em">
-                <div>You have been <b>disconnected</b> !</div>
-            </div>
+            <div class="text flexrow fill" style="font-size: 1.5em"></div>
         </section>
     </body>
     <script type="module">
@@ -192,8 +190,7 @@
         }
 
         function onCloseConnection() {
-            document.querySelectorAll("section").forEach(el => el.style.display = "none")
-            document.querySelector("section#error").style.display = ""
+            showError("You have been <b>disconnected</b> ! 😵")
         }
 
         async function startJoypad(gameKey) {
@@ -210,6 +207,13 @@
                     evt.stopPropagation()
                 }
             })
+        }
+
+        function showError(msg) {
+            document.querySelectorAll("section").forEach(el => el.style.display = "none")
+            const errSection = document.querySelector("section#error")
+            errSection.style.display = ""
+            errSection.querySelector(".text").innerHTML = msg
         }
 
         if(fullscreenActivated) addFullscreenEventListener()
