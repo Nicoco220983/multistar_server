@@ -12,7 +12,7 @@
             body, flexcol, flexrow, flexresp {
                 display: flex;
                 align-items: center;
-                justify-content: space-around;
+                justify-content: center;
                 gap: .5em;
             }
             body, flexcol {
@@ -80,13 +80,13 @@
                 <img src="../logo.jpg"/>
                 <div class="title colored">MultiStar</div>
             </flexresp>
-            <flexresp class="fill" style="justify-content: center; gap: 1em">
+            <flexresp class="fill" style="gap: 1em">
                 <flexcol style="gap: 1em; max-height: 15em">
                     <flexrow>
                         <div>Enter your name:</div>
                         <div><input class="player_name" type="text"></div>
                     </flexrow>
-                    <flexresp style="justify-content: center; gap: .5em">
+                    <flexresp style="gap: .5em">
                         <div>Pick your color:</div>
                         <div><color-picker></color-picker></div>
                     </flexresp>
@@ -97,7 +97,7 @@
         <flexcol id="joypad">
             <flexcol id="aspect_ratio_wrapper"></flexcol>
         </flexcol>
-        <flexcol id="error" class="fill" style="display: none; justify-content: center">
+        <flexcol id="error" class="fill" style="display: none">
             <flexresp class="header" style="padding:1em; gap: .5em">
                 <img src="../broken_joypad.png" />
                 <div class="title">MultiStar</div>
