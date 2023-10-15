@@ -8,16 +8,16 @@
                 margin: 0;
                 height: 100%;
             }
-            .flexcol, .flexrow {
+            body, flexcol, flexrow {
                 display: flex;
                 align-items: center;
                 justify-content: space-evenly;
                 gap: .5em;
             }
-            .flexcol {
+            body, flexcol {
                 flex-direction: column;
             }
-            .flexrow {
+            flexrow {
                 flex-direction: row;
             }
             .fill {
@@ -40,17 +40,17 @@
                 width: 500px;
                 height: 500px;
             }
-            section#joypads {
+            #joypads {
                 width: 600px;
             }
-            section#joypads iframe {
+            #joypads iframe {
                 width: 100%;
                 aspect-ratio: 16 / 9;
             }
-            section#disconnected {
+            #disconnected {
                 width: 100%;
             }
-            section#disconnected img {
+            #disconnected img {
                 width: 50%;
                 max-width: 400px;
             }
@@ -58,31 +58,31 @@
         <script src="qrcode.min.js"></script>
         <script type="module" src="games-menu.mjs"></script>
     </head>
-    <body class="flexcol" style="padding: 1em; gap: 1em; justify-content:start">
-        <section class="header flexrow" style="gap: 2em">
+    <body id="sections" class="flexcol" style="padding: 1em; gap: 1em; justify-content:start">
+        <flexrow id="header" class="header" style="gap: 2em">
             <img src="logo.jpg"/>
             <div class="title colored">MultiStar</div>
-        </section>
-        <section id="join" class="flexcol">
+        </flexrow>
+        <flexcol id="join">
             <h2>Join the room:</h2>
             <div id="qrcode"></div>
             <div id="joypad_url" style="font-weight:bold; font-size:1.3em; padding: .5em"></div>
-        </section>
-        <section id="game" class="flexcol" style="display: none">
-            <div id="aspect_ratio_wrapper" class="flexcol"></div>
-        </section>
-        <section id="joypads" class="flexcol" style="display: none"></section>
-        <section id="games_menu" class="flexcol">
+        </flexcol>
+        <flexcol id="game" style="display: none">
+            <flexcol id="aspect_ratio_wrapper"></flexcol>
+        </flexcol>
+        <flexcol id="joypads" style="display: none"></flexcol>
+        <flexcol id="games_menu">
             <h2>Select a game:</h2>
             <games-menu></games-menu>
-        </section>
-        <section id="error" class="flexcol fill" style="display: none; justify-content: center">
-            <div class="header flexrow" style="gap: 2em">
+        </flexcol>
+        <flexcol id="error" class="fill" style="display: none; justify-content: center">
+            <flexrow class="header" style="gap: 2em">
                 <img src="broken_joypad.png" />
                 <div class="title">MultiStar</div>
-            </div>
-            <div class="text flexrow fill" style="font-size: 1.5em"></div>
-        </section>
+            </flexrow>
+            <flexrow class="text fill" style="font-size: 1.5em"></flexrow>
+        </flexcol>
     </body>
     <script type="module">
 
@@ -154,7 +154,7 @@
         }
 
         function addEmbeddedJoypads(joypadUrl) {
-            const joypadsEl = document.querySelector("section#joypads")
+            const joypadsEl = document.getElementById("joypads")
             for(let i=0; i<nbEmbeddedJoypads; ++i) {
                 const iframeEl = document.createElement("iframe")
                 iframeEl.src = `${joypadUrl}?fs=0`
@@ -169,11 +169,9 @@
 
         async function startGame(gameKey) {
             const src = await import(`/game/${gameKey}/game.mjs`)
-            document.querySelectorAll("section").forEach(el => el.style.display = "none")
-            document.querySelector("section.header").style.display = ""
-            document.querySelector("section#game").style.display = ""
-            document.querySelector("section#games_menu").style.display = ""
-            if(nbEmbeddedJoypads > 0) document.querySelector("section#joypads").style.display = ""
+            const sections = ["header", "game", "games_menu"]
+            if(nbEmbeddedJoypads > 0) sections.push("joypads")
+            showSections(...sections)
             const wrapperEl = document.querySelector("#aspect_ratio_wrapper")
             wrapperEl.innerHTML = ""
             game = src.startGame(wrapperEl, gameWs)
@@ -186,17 +184,20 @@
         function addFullscreenEventListerner() {
             document.querySelector("#aspect_ratio_wrapper").addEventListener("click", evt => {
                 if(!document.fullscreenElement) {
-                    document.querySelector("section#game").requestFullscreen()
+                    document.getElementById("game").requestFullscreen()
                     evt.stopPropagation()
                 }
             })
         }
 
+        function showSections(...ids) {
+            for(const el of document.getElementById("sections").children) el.style.display = "none"
+            for(const id of ids) document.getElementById(id).style.display = ""
+        }
+
         function showError(msg) {
-            document.querySelectorAll("section").forEach(el => el.style.display = "none")
-            const errSection = document.querySelector("section#error")
-            errSection.style.display = ""
-            errSection.querySelector(".text").innerHTML = msg
+            showSections("error")
+            document.querySelector("#error .text").innerHTML = msg
         }
 
         addFullscreenEventListerner()

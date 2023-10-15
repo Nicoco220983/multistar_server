@@ -9,23 +9,23 @@
                 margin: 0;
                 height: 100%;
             }
-            .flexcol, .flexrow, .flexresp {
+            body, flexcol, flexrow, flexresp {
                 display: flex;
                 align-items: center;
                 justify-content: space-around;
                 gap: .5em;
             }
-            .flexcol {
+            body, flexcol {
                 flex-direction: column;
             }
-            .flexrow {
+            flexrow {
                 flex-direction: row;
             }
-            .flexresp {
+            flexresp {
                 flex-direction: column;
             }
             @media (orientation: landscape) {
-                .flexresp {
+                flexresp {
                     flex-direction: row;
                 }
             }
@@ -74,36 +74,36 @@
         <!-- <script src="../two.min.js"></script> -->
         <script type="module" src="/color-picker.mjs"></script>
     </head>
-    <body class="flexcol">
-        <section id="identification" class="flexcol fill" style="padding: 1em">
-            <div class="header flexresp" style="gap: .5em">
+    <body id="sections">
+        <flexcol id="identification" class="fill" style="padding: 1em">
+            <flexresp class="header" style="gap: .5em">
                 <img src="../logo.jpg"/>
                 <div class="title colored">MultiStar</div>
-            </div>
-            <div class="flexresp fill" style="justify-content: center">
-                <div class="flexcol" style="gap: 1em; max-height: 15em">
-                    <div class="flexrow">
+            </flexresp>
+            <flexresp class="fill" style="justify-content: center; gap: 1em">
+                <flexcol style="gap: 1em; max-height: 15em">
+                    <flexrow>
                         <div>Enter your name:</div>
                         <div><input class="player_name" type="text"></div>
-                    </div>
-                    <div class="flexresp" style="justify-content: center; gap: .5em">
+                    </flexrow>
+                    <flexresp style="justify-content: center; gap: .5em">
                         <div>Pick your color:</div>
                         <div><color-picker></color-picker></div>
-                    </div>
-                </div>
+                    </flexresp>
+                </flexcol>
                 <button id="join">Join</button>
-            </div>
-        </section>
-        <section id="joypad" class="flexcol">
-            <div id="aspect_ratio_wrapper" class="flexcol"></div>
-        </section>
-        <section id="error" class="flexcol fill" style="display: none; justify-content: center">
-            <div class="header flexresp" style="padding:1em; gap: .5em">
+            </flexresp>
+        </flexcol>
+        <flexcol id="joypad">
+            <flexcol id="aspect_ratio_wrapper"></flexcol>
+        </flexcol>
+        <flexcol id="error" class="fill" style="display: none; justify-content: center">
+            <flexresp class="header" style="padding:1em; gap: .5em">
                 <img src="../broken_joypad.png" />
                 <div class="title">MultiStar</div>
-            </div>
-            <div class="text flexrow fill" style="font-size: 1.5em"></div>
-        </section>
+            </flexresp>
+            <flexrow class="text fill" style="font-size: 1.5em"></flexrow>
+        </flexcol>
     </body>
     <script type="module">
 
@@ -147,16 +147,15 @@
         }
 
         function initIdentificationForm() {
-            document.querySelectorAll("section").forEach(el => el.style.display = "none")
-            document.querySelector("section#identification").style.display = ""
+            showSections("identification")
 
-            document.querySelector("section#identification color-picker").onSelect = color => {
+            document.querySelector("#identification color-picker").onSelect = color => {
                 playerWs.player.color = color
             }
 
-            document.querySelector("section#identification #join").onclick = () => {
+            document.querySelector("#identification #join").onclick = () => {
                 const { player } = playerWs
-                player.name = document.querySelector("section#identification .player_name").value || player.name || "Player"
+                player.name = document.querySelector("#identification .player_name").value || player.name || "Player"
                 playerWs.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify(player))
                 initGame()
             }
@@ -164,15 +163,14 @@
 
         function initGame() {
             step = "GAME"
-            document.querySelectorAll("section").forEach(el => el.style.display = "none")
-            document.querySelector("section#joypad").style.display = ""
+            showSections("joypad")
             if(gameKey) startJoypad(gameKey)
         }
 
         function onIdentifyPlayer(kwargs) {
             playerWs.player = kwargs
-            document.querySelector("section#identification .player_name").placeholder = playerWs.player.name
-            document.querySelector("section#identification color-picker").syncColor(playerWs.player.color)
+            document.querySelector("#identification .player_name").placeholder = playerWs.player.name
+            document.querySelector("#identification color-picker").syncColor(playerWs.player.color)
         }
 
         function onStartGame(kwargs) {
@@ -203,17 +201,20 @@
         function addFullscreenEventListener() {
             document.querySelector("#aspect_ratio_wrapper").addEventListener("click", evt => {
                 if(!document.fullscreenElement) {
-                    document.querySelector("section#joypad").requestFullscreen()
+                    document.querySelector("#joypad").requestFullscreen()
                     evt.stopPropagation()
                 }
             })
         }
 
+        function showSections(...ids) {
+            for(const el of document.getElementById("sections").children) el.style.display = "none"
+            for(const id of ids) document.getElementById(id).style.display = ""
+        }
+
         function showError(msg) {
-            document.querySelectorAll("section").forEach(el => el.style.display = "none")
-            const errSection = document.querySelector("section#error")
-            errSection.style.display = ""
-            errSection.querySelector(".text").innerHTML = msg
+            showSections("error")
+            document.querySelector("#error .text").innerHTML = msg
         }
 
         if(fullscreenActivated) addFullscreenEventListener()
