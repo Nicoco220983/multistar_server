@@ -10,7 +10,7 @@ import path from "path"
 import express from "express"
 import { WebSocketServer } from 'ws'
 
-import Consts from './public/consts.mjs'
+import Consts from './static/consts.mjs'
 
 const PROD = ((process.env.MULTISTAR_ENV || "").toLowerCase() === "production") ? true : false
 const PORT = process.env.MULTISTAR_PORT || (PROD ? 80 : 3000)
@@ -29,7 +29,7 @@ class GameServer {
 
   initApp() {
     this.app = express()
-    this.app.use(express.static('public'))
+    this.app.use(express.static('static'))
 
     this.app.get("/games", (req, res) => {
       res.json({ games })
@@ -40,7 +40,7 @@ class GameServer {
       if(this.rooms[roomId] === undefined) {
         return res.sendStatus(404)
       }
-      res.sendFile(join(DIRNAME, "public/joypad.html"))
+      res.sendFile(join(DIRNAME, "static/joypad.html"))
     })
   }
 
@@ -210,7 +210,7 @@ class Room {
 
 function initGames() {
   const games = {}
-  for(const dirent of fs.readdirSync(path.join(DIRNAME, 'public/game'), { withFileTypes: true })) {
+  for(const dirent of fs.readdirSync(path.join(DIRNAME, 'static/game'), { withFileTypes: true })) {
     try {
       if(!dirent.isSymbolicLink()) continue
       const gameRelPath = path.join(dirent.path, dirent.name)

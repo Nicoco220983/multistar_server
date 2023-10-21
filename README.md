@@ -1,7 +1,7 @@
 # MultiStar Server
 
 <p align="center">
-  <img src="./public/logo.jpg" alt="MultiStar"/>
+  <img src="./static/logo.jpg" alt="MultiStar"/>
 </p>
 
 __MultiStar__ is a webserver, written in node, hosting local multiplayer games.

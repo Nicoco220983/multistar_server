@@ -14,8 +14,8 @@ function installGame(pkgSpec) {
     installPkg(pkgSpec)
     const gameKey = getGameKey(pkgName)
     forceSymlinkSync(
-        join(dirname(require.resolve(pkgName)), "public"),
-        join(__dirname, "../public/game", gameKey)
+        join(dirname(require.resolve(pkgName)), "static"),
+        join(__dirname, "../static/game", gameKey)
     )
     console.log(`\nGame '${gameKey}' installed !`)
 }
