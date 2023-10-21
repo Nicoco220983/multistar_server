@@ -192,7 +192,7 @@
         }
 
         async function startJoypad(gameKey) {
-            const src = await import(`/game/${gameKey}/joypad.mjs`)
+            const src = await import(`../game/${gameKey}/joypad.mjs`)
             const wrapperEl = document.querySelector("#aspect_ratio_wrapper")
             wrapperEl.innerHTML = ""
             joypad = src.startJoypad(wrapperEl, playerWs)

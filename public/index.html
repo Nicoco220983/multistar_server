@@ -95,7 +95,7 @@
 
         function initGameWebsocket() {
             const socketProtocol = (window.location.protocol.includes('https')) ? 'wss' : 'ws'
-            gameWs  = new WebSocket(`${socketProtocol}://${window.location.host}`)
+            gameWs  = new WebSocket(`${socketProtocol}://${window.location.host}${window.location.pathname}`)
 
             gameWs.addEventListener('open', () => {
                 console.log('Connected to server')
@@ -168,7 +168,7 @@
         }
 
         async function startGame(gameKey) {
-            const src = await import(`/game/${gameKey}/game.mjs`)
+            const src = await import(`./game/${gameKey}/game.mjs`)
             const sections = ["header", "game", "games_menu"]
             if(nbEmbeddedJoypads > 0) sections.push("joypads")
             showSections(...sections)

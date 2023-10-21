@@ -51,7 +51,7 @@ class GamesMenu extends HTMLElement {
     }
 
     fetchGames() {
-        fetch("/games")
+        fetch("games")
             .then(res => res.json())
             .then(res => {
                 this.gamesEl.innerHTML = ""
@@ -66,8 +66,8 @@ class GamesMenu extends HTMLElement {
         gameEl.querySelector(".title").textContent = game.title
         gameEl.querySelector(".description").textContent = game.description
         const iconEl = gameEl.querySelector(".icon")
-        iconEl.src = `/game/${gameKey}/icon.jpg`
-        iconEl.onerror = () => iconEl.src='/default_game_icon.jpg'
+        iconEl.src = `game/${gameKey}/icon.jpg`
+        iconEl.onerror = () => iconEl.src='default_game_icon.jpg'
         gameEl.querySelector(".game").onclick = () => this.onSelect(gameKey, game)
         return gameEl
     }
