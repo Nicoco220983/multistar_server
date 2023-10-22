@@ -1,4 +1,4 @@
-import Consts from '../consts.mjs'
+import Consts from './consts.mjs'
 
 class ColorPicker extends HTMLElement {
 

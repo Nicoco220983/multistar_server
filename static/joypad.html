@@ -72,7 +72,7 @@
             }
         </style>
         <!-- <script src="../two.min.js"></script> -->
-        <script type="module" src="/color-picker.mjs"></script>
+        <script type="module" src="../color-picker.mjs"></script>
     </head>
     <body id="sections">
         <flexcol id="identification" class="fill" style="padding: 1em">
@@ -118,7 +118,9 @@
 
         function initJoypadWebsocket() {
             const socketProtocol = (window.location.protocol.includes('https')) ? 'wss' : 'ws'
-            playerWs  = new WebSocket(`${socketProtocol}://${window.location.host}`)
+            let wsUrl = `${socketProtocol}://${window.location.host}${window.location.pathname}`
+            wsUrl = wsUrl.substring(0, wsUrl.lastIndexOf('/'))
+            playerWs  = new WebSocket(wsUrl)
 
             playerWs.addEventListener('open', () => {
                 console.log('Connected to server')
