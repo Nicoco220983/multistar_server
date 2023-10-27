@@ -23,16 +23,12 @@
             .fill {
                 flex: 1;
             }
-            .header .title {
-                font-size: 5em;
-                font-weight: bold;
-            }
-            .header .title.colored {
+            .colored {
                 background-image: linear-gradient(45deg, #a4f7ff, #711eef, #f41ce9);
                 background-clip: text;
                 color: transparent;
             }
-            .header img {
+            .logo {
                 width: 150px;
             }
             #aspect_ratio_wrapper {
@@ -47,41 +43,31 @@
                 width: 100%;
                 aspect-ratio: 16 / 9;
             }
-            #disconnected {
-                width: 100%;
-            }
-            #disconnected img {
-                width: 50%;
-                max-width: 400px;
-            }
         </style>
         <script src="qrcode.min.js"></script>
         <script type="module" src="games-menu.mjs"></script>
     </head>
-    <body id="sections" class="flexcol" style="padding: 1em; gap: 1em; justify-content:start">
-        <flexrow id="header" class="header" style="gap: 2em">
-            <img src="logo.jpg"/>
-            <div class="title colored">MultiStar</div>
+    <body style="padding: 1em; gap: 1em; justify-content: start">
+        <flexrow id="header" style="gap: 2em">
+            <img class="ok logo" src="logo.jpg" />
+            <img class="error logo" src="broken_joypad.png" style="display: none" />
+            <div class="title colored" style="font-size: 5em; font-weight: bold">MultiStar</div>
         </flexrow>
-        <flexcol id="join">
-            <h2>Join the room:</h2>
-            <div id="qrcode"></div>
-            <div id="joypad_url" style="font-weight:bold; font-size:1.3em; padding: .5em"></div>
-        </flexcol>
-        <flexcol id="game" style="display: none">
-            <flexcol id="aspect_ratio_wrapper"></flexcol>
-        </flexcol>
-        <flexcol id="joypads" style="display: none"></flexcol>
-        <flexcol id="games_menu">
-            <h2>Select a game:</h2>
-            <games-menu></games-menu>
-        </flexcol>
-        <flexcol id="error" class="fill" style="display: none">
-            <flexrow class="header" style="gap: 2em">
-                <img src="broken_joypad.png" />
-                <div class="title">MultiStar</div>
-            </flexrow>
-            <flexrow class="text fill" style="font-size: 1.5em"></flexrow>
+        <flexcol id="sections" class="fill" style="gap: 1em">
+            <flexcol id="join" style="display: none">
+                <h2>Join the room:</h2>
+                <div id="qrcode"></div>
+                <div id="joypad_url" style="font-weight: bold; font-size: 1.3em; padding: .5em"></div>
+            </flexcol>
+            <flexcol id="game" style="display: none">
+                <flexcol id="aspect_ratio_wrapper"></flexcol>
+            </flexcol>
+            <flexcol id="joypads" style="display: none"></flexcol>
+            <flexcol id="games_menu" style="display: none">
+                <h2>Select a game:</h2>
+                <games-menu></games-menu>
+            </flexcol>
+            <flexrow id="message" class="fill" style="display: none; font-size: 1.5em"></flexrow>
         </flexcol>
     </body>
     <script type="module">
@@ -169,9 +155,9 @@
 
         async function startGame(gameKey) {
             const src = await import(`./game/${gameKey}/game.mjs`)
-            const sections = ["header", "game", "games_menu"]
+            const sections = ["game", "games_menu"]
             if(nbEmbeddedJoypads > 0) sections.push("joypads")
-            showSections(...sections)
+            showSections(false, ...sections)
             const wrapperEl = document.querySelector("#aspect_ratio_wrapper")
             wrapperEl.innerHTML = ""
             game = src.startGame(wrapperEl, gameWs)
@@ -190,18 +176,24 @@
             })
         }
 
-        function showSections(...ids) {
+        function showSections(error_header, ...ids) {
+            document.body.querySelector("#header .ok.logo").style.display = error_header ? "none" : ""
+            document.body.querySelector("#header .error.logo").style.display = error_header ? "" : "none"
+            const titleEl = document.body.querySelector("#header .title")
+            if(error_header) titleEl.classList.remove("colored")
+            else titleEl.classList.add("colored")
             for(const el of document.getElementById("sections").children) el.style.display = "none"
             for(const id of ids) document.getElementById(id).style.display = ""
         }
 
         function showError(msg) {
-            showSections("error")
-            document.querySelector("#error .text").innerHTML = msg
+            showSections(true, "message")
+            document.querySelector("#message").innerHTML = msg
         }
 
         addFullscreenEventListerner()
         initGameWebsocket()
         initGamesMenu()
+        showSections(false, "join", "games_menu")
     </script>
 </html>

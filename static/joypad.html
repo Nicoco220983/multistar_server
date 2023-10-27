@@ -32,20 +32,16 @@
             .fill {
                 flex: 1;
             }
-            .header .title {
-                font-size: 32px;
-                font-weight: bold;
-            }
-            .header .title.colored {
+            .colored {
                 background-image: linear-gradient(45deg, #a4f7ff, #711eef, #f41ce9);
                 background-clip: text;
                 color: transparent;
             }
-            .header img {
+            .logo {
                 width: 150px;
             }
             @media (orientation: landscape) {
-                .header img {
+                .logo, .error_logo {
                     width: 80px;
                 }
             }
@@ -74,35 +70,32 @@
         <!-- <script src="../two.min.js"></script> -->
         <script type="module" src="../color-picker.mjs"></script>
     </head>
-    <body id="sections">
-        <flexcol id="identification" class="fill" style="padding: 1em">
-            <flexresp class="header" style="gap: .5em">
-                <img src="../logo.jpg"/>
-                <div class="title colored">MultiStar</div>
-            </flexresp>
-            <flexresp class="fill" style="gap: 1em">
-                <flexcol style="gap: 1em; max-height: 15em">
-                    <flexrow>
-                        <div>Enter your name:</div>
-                        <div><input class="player_name" type="text"></div>
-                    </flexrow>
-                    <flexresp style="gap: .5em">
-                        <div>Pick your color:</div>
-                        <div><color-picker></color-picker></div>
-                    </flexresp>
-                </flexcol>
-                <button id="join">Join</button>
-            </flexresp>
-        </flexcol>
-        <flexcol id="joypad">
-            <flexcol id="aspect_ratio_wrapper"></flexcol>
-        </flexcol>
-        <flexcol id="error" class="fill" style="display: none">
-            <flexresp class="header" style="padding:1em; gap: .5em">
-                <img src="../broken_joypad.png" />
-                <div class="title">MultiStar</div>
-            </flexresp>
-            <flexrow class="text fill" style="font-size: 1.5em"></flexrow>
+    <body style="padding: 1em; gap: 1em">
+        <flexresp id="header" style="gap: .5em">
+            <img class="ok logo" src="../logo.jpg" />
+            <img class="error logo" src="../broken_joypad.png" style="display: none" />
+            <div class="title colored" style="font-size: 32px; font-weight: bold">MultiStar</div>
+        </flexresp>
+        <flexcol id="sections" class="fill" style="gap: 1em">
+            <flexcol id="identification" class="fill" style="display: none; padding: 1em; gap:1em">
+                <flexresp class="fill" style="gap: 1em">
+                    <flexcol style="gap: 1em; max-height: 15em">
+                        <flexrow>
+                            <div>Enter your name:</div>
+                            <div><input class="player_name" type="text"></div>
+                        </flexrow>
+                        <flexresp style="gap: .5em">
+                            <div>Pick your color:</div>
+                            <div><color-picker></color-picker></div>
+                        </flexresp>
+                    </flexcol>
+                    <button id="join">Join</button>
+                </flexresp>
+            </flexcol>
+            <flexcol id="joypad" style="display: none">
+                <flexcol id="aspect_ratio_wrapper"></flexcol>
+            </flexcol>
+            <flexrow id="message" class="text fill" style="display: none; font-size: 1.5em"></flexrow>
         </flexcol>
     </body>
     <script type="module">
@@ -149,7 +142,7 @@
         }
 
         function initIdentificationForm() {
-            showSections("identification")
+            showSections(false, "identification")
 
             document.querySelector("#identification color-picker").onSelect = color => {
                 playerWs.player.color = color
@@ -165,7 +158,7 @@
 
         function initGame() {
             step = "GAME"
-            showSections("joypad")
+            showSections(false, "joypad")
             if(gameKey) startJoypad(gameKey)
         }
 
@@ -209,14 +202,19 @@
             })
         }
 
-        function showSections(...ids) {
+        function showSections(error_header, ...ids) {
+            document.body.querySelector("#header .ok.logo").style.display = error_header ? "none" : ""
+            document.body.querySelector("#header .error.logo").style.display = error_header ? "" : "none"
+            const titleEl = document.body.querySelector("#header .title")
+            if(error_header) titleEl.classList.remove("colored")
+            else titleEl.classList.add("colored")
             for(const el of document.getElementById("sections").children) el.style.display = "none"
             for(const id of ids) document.getElementById(id).style.display = ""
         }
 
         function showError(msg) {
-            showSections("error")
-            document.querySelector("#error .text").innerHTML = msg
+            showSections(true, "message")
+            document.querySelector("#message").innerHTML = msg
         }
 
         if(fullscreenActivated) addFullscreenEventListener()
