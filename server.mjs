@@ -13,7 +13,7 @@ import { WebSocketServer } from 'ws'
 import Consts from './static/consts.mjs'
 
 const PROD = ((process.env.MULTISTAR_ENV || "").toLowerCase() === "production") ? true : false
-const PORT = process.env.MULTISTAR_PORT || (PROD ? 80 : 3000)
+const PORT = process.env.MULTISTAR_PORT || (PROD ? 8080 : 3000)
 const DIRNAME = dirname(fileURLToPath(import.meta.url))
 
 const games = initGames()
