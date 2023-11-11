@@ -64,6 +64,7 @@ class GameServer {
         const body = msg.substring(Consts.MSG_KEY_LENGTH)
         if(key === Consts.MSG_KEYS.JOYPAD_INPUT) this.onJoypadInput(ws, body)
         else if(key === Consts.MSG_KEYS.GAME_INPUT) this.onGameInput(ws, body)
+        else if(key === Consts.MSG_KEYS.GAME_STATE) this.onGameState(ws, body)
         else if(key === Consts.MSG_KEYS.IDENTIFY_GAME) this.onIdentifyGame(ws)
         else if(key === Consts.MSG_KEYS.IDENTIFY_PLAYER) this.onIdentifyPlayer(ws, JSON.parse(body))
         else if(key === Consts.MSG_KEYS.START_GAME) this.onStartGame(ws, JSON.parse(body))
@@ -106,6 +107,7 @@ class GameServer {
 
   onIdentifyPlayer(ws, kwargs) {
     if(!ws.room) {
+      // first player connection
       ws.type = "player"
       const { roomId } = kwargs
       const room = this.rooms[roomId]
@@ -122,8 +124,10 @@ class GameServer {
         ws.send(Consts.MSG_KEYS.START_GAME + JSON.stringify({
           gameKey: room.gameKey
         }))
+        if(room.gameState) ws.send(Consts.MSG_KEYS.GAME_STATE + room.gameState)
       }
     } else {
+      // player chose its name and color
       const { room } = ws
       if(!room || room.closed) { ws.close(); return }
       if(kwargs.name) ws.name = kwargs.name
@@ -139,6 +143,7 @@ class GameServer {
     const { room } = ws
     if(!room || room.closed) { ws.close(); return }
     room.gameKey = gameKey
+    room.gameState = null
     console.log(`Game of room '${room.id}' set to '${gameKey}'`)
     room.sendToPlayers(Consts.MSG_KEYS.START_GAME + JSON.stringify({
       gameKey
@@ -173,6 +178,13 @@ class GameServer {
     if(!room || room.closed) { ws.close(); return }
     room.sendToPlayers(Consts.MSG_KEYS.GAME_INPUT + body)
   }
+
+  onGameState(ws, body) {
+    const { room } = ws
+    if(!room || room.closed) { ws.close(); return }
+    room.gameState = body
+    room.sendToPlayers(Consts.MSG_KEYS.GAME_STATE + body)
+  }
 }
 
 
@@ -183,6 +195,8 @@ class Room {
     this.numPlayer = 0
     this.gameWebsocket = gameWs
     this.playerWebsockets = {}
+    this.gameKey = null
+    this.gameState = null
   }
 
   sendToGame(msg) {

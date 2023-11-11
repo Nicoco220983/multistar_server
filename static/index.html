@@ -104,6 +104,9 @@
             gameWs.sendInput = data => {
                 gameWs.send(Consts.MSG_KEYS.GAME_INPUT + JSON.stringify(data))
             }
+            gameWs.sendState = data => {
+                gameWs.send(Consts.MSG_KEYS.GAME_STATE + JSON.stringify(data))
+            }
         }
 
         function onGameIdentification(kwargs) {

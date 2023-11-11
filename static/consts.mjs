@@ -18,6 +18,7 @@ export default Object.freeze({
     SYNC_PLAYERS: "PLA",
     JOYPAD_INPUT: 'JPI',
     GAME_INPUT: 'GMI',
+    GAME_STATE: 'GMS',
   },
 
   PLAYER_COLORS: [

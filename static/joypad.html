@@ -107,7 +107,7 @@
         const fullscreenActivated  = urlParams.get('fs') !== '0'
 
         let step = "IDENTIFICATION"
-        let playerWs = null, gameKey = null, players = null, joypad = null
+        let playerWs = null, gameKey = null, gameState = null, players = null, joypad = null
 
         function initJoypadWebsocket() {
             const socketProtocol = (window.location.protocol.includes('https')) ? 'wss' : 'ws'
@@ -126,6 +126,7 @@
                 const key = evt.data.substring(0, Consts.MSG_KEY_LENGTH)
                 const data = evt.data.substring(Consts.MSG_KEY_LENGTH)
                 if(key === Consts.MSG_KEYS.GAME_INPUT) onGameInput(JSON.parse(data))
+                else if(key === Consts.MSG_KEYS.GAME_STATE) onGameState(JSON.parse(data))
                 else if(key === Consts.MSG_KEYS.IDENTIFY_PLAYER) onIdentifyPlayer(JSON.parse(data))
                 else if(key === Consts.MSG_KEYS.START_GAME) onStartGame(JSON.parse(data))
                 else if(key === Consts.MSG_KEYS.SYNC_PLAYERS) onSyncPlayers(JSON.parse(data))
@@ -158,8 +159,8 @@
 
         function initGame() {
             step = "GAME"
-            showSections(false, "joypad")
             if(gameKey) startJoypad(gameKey)
+            else showMessage("Waiting for a game to start... 🥱")
         }
 
         function onIdentifyPlayer(kwargs) {
@@ -182,15 +183,22 @@
             if(joypad) joypad.onGameInput(kwargs)
         }
 
+        function onGameState(kwargs) {
+            gameState = kwargs
+            if(joypad) joypad.onGameState(gameState)
+        }
+
         function onCloseConnection() {
             showError("You have been <b>disconnected</b> ! 😵")
         }
 
         async function startJoypad(gameKey) {
+            showSections(false, "joypad")
             const src = await import(`../game/${gameKey}/joypad.mjs`)
             const wrapperEl = document.querySelector("#aspect_ratio_wrapper")
             wrapperEl.innerHTML = ""
             joypad = src.startJoypad(wrapperEl, playerWs)
+            if(gameState) joypad.onGameState(gameState)
         }
 
         function addFullscreenEventListener() {
@@ -210,6 +218,11 @@
             else titleEl.classList.add("colored")
             for(const el of document.getElementById("sections").children) el.style.display = "none"
             for(const id of ids) document.getElementById(id).style.display = ""
+        }
+
+        function showMessage(msg) {
+            showSections(false, "message")
+            document.querySelector("#message").innerHTML = msg
         }
 
         function showError(msg) {
