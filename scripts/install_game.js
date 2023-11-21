@@ -28,7 +28,7 @@ function getPkgName(pkgSpec) {
 }
 
 function installPkg(pkgSpec) {
-    child_process.spawnSync("npm", ["install", "--no-save", pkgSpec], {
+    child_process.spawnSync("npm", ["install", "--save", pkgSpec], {
         stdio: ["pipe", process.stdout, process.stderr]
     })
 }
