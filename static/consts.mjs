@@ -19,6 +19,7 @@ export default Object.freeze({
     JOYPAD_INPUT: 'JPI',
     GAME_INPUT: 'GMI',
     GAME_STATE: 'GMS',
+    DISCONNECT_PLAYER: 'DSP',
   },
 
   PLAYER_COLORS: [

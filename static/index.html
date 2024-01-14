@@ -46,6 +46,21 @@
                 width: 100%;
                 aspect-ratio: 16 / 9;
             }
+            #players_list {
+                border: 1px solid lightgrey;
+            }
+            #players_list td {
+                padding-right: .5em
+            }
+            #players_list .color {
+                display: block;
+                width: 10px;
+                height: 10px;
+                border-radius: 2px;
+            }
+            .button {
+                cursor: pointer;
+            }
         </style>
         <script src="qrcode.min.js"></script>
         <script type="module" src="games-menu.mjs"></script>
@@ -66,6 +81,10 @@
                 <flexcol id="aspect_ratio_wrapper"></flexcol>
             </flexcol>
             <flexcol id="joypads" style="display: none"></flexcol>
+            <flexcol id="players" style="display: none">
+                <h2>Players:</h2>
+                <table id="players_list"></table>
+            </flexcol>
             <flexcol id="games_menu" style="display: none">
                 <h2>Select a game:</h2>
                 <games-menu></games-menu>
@@ -130,7 +149,34 @@
 
         function onSyncPlayers(kwargs) {
             players = kwargs
+            // sync current game
             if(game) game.syncPlayers(players)
+            // sync players list
+            const playersEl = document.getElementById("players_list")
+            playersEl.innerHTML = ""
+            for(const playerId in kwargs) {
+                const player = kwargs[playerId]
+                const playerRow = document.createElement("tr")
+                const colorEl = document.createElement("td")
+                colorEl.innerHTML = "&#x23FA;"
+                colorEl.style.fontSize = "2em"
+                colorEl.style.color = player.color
+                playerRow.appendChild(colorEl)
+                const nameEl = document.createElement("td")
+                nameEl.textContent = player.name
+                playerRow.appendChild(nameEl)
+                const discEl = document.createElement("td")
+                discEl.classList.add("button")
+                discEl.innerHTML = "&#x274C;"
+                discEl.onclick = () => {
+                    if (window.confirm("Are you sure you want to disconnect this playr ?")) {
+                        gameWs.send(Consts.MSG_KEYS.DISCONNECT_PLAYER + playerId)
+                    }
+                }
+                playerRow.appendChild(discEl)
+                playersEl.appendChild(playerRow)
+
+            }
         }
 
         function onJoypadInput(data) {
@@ -161,7 +207,7 @@
 
         async function startGame(gameKey) {
             const src = await import(`./game/${gameKey}/game.mjs`)
-            const sections = ["game", "games_menu"]
+            const sections = ["game", "players", "games_menu"]
             if(nbEmbeddedJoypads > 0) sections.push("joypads")
             showSections(false, ...sections)
             const wrapperEl = document.querySelector("#aspect_ratio_wrapper")

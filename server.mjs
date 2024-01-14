@@ -37,9 +37,7 @@ class GameServer {
 
     this.app.get("/room/:roomId", (req, res) => {
       const { roomId } = req.params
-      if(this.rooms[roomId] === undefined) {
-        return res.sendStatus(404)
-      }
+      if(this.rooms[roomId] === undefined) return res.sendStatus(404)
       res.sendFile(join(DIRNAME, "static/joypad.html"))
     })
   }
@@ -68,6 +66,7 @@ class GameServer {
         else if(key === Consts.MSG_KEYS.IDENTIFY_GAME) this.onIdentifyGame(ws)
         else if(key === Consts.MSG_KEYS.IDENTIFY_PLAYER) this.onIdentifyPlayer(ws, JSON.parse(body))
         else if(key === Consts.MSG_KEYS.START_GAME) this.onStartGame(ws, JSON.parse(body))
+        else if(key === Consts.MSG_KEYS.DISCONNECT_PLAYER) this.onDisconnectPlayer(ws, body)
         else console.warn("Unknown websocket key", key)
       })
     
@@ -184,6 +183,14 @@ class GameServer {
     if(!room || room.closed) { ws.close(); return }
     room.gameState = body
     room.sendToPlayers(Consts.MSG_KEYS.GAME_STATE + body)
+  }
+
+  onDisconnectPlayer(ws, playerId) {
+    const { room } = ws
+    if(!room || room.closed) { ws.close(); return }
+    const playerWs = room.playerWebsockets[playerId]
+    if(!playerWs) return
+    playerWs.close()
   }
 }
 
