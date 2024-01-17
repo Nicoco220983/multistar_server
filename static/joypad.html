@@ -68,12 +68,12 @@
             }
         </style>
         <!-- <script src="../two.min.js"></script> -->
-        <script type="module" src="../color-picker.mjs"></script>
+        <script type="module" src="../../../color-picker.mjs"></script>
     </head>
     <body style="padding: 1em; gap: 1em">
         <flexresp id="header" style="gap: .5em">
-            <img class="ok logo" src="../logo.jpg" />
-            <img class="error logo" src="../broken_joypad.png" style="display: none" />
+            <img class="ok logo" src="../../../logo.jpg" />
+            <img class="error logo" src="../../../broken_joypad.png" style="display: none" />
             <div class="title colored" style="font-size: 32px; font-weight: bold">MultiStar</div>
         </flexresp>
         <flexcol id="sections" class="fill" style="gap: 1em">
@@ -100,9 +100,12 @@
     </body>
     <script type="module">
 
-        import Consts from '../consts.mjs'
+        import Consts from '../../../consts.mjs'
 
-        const roomId = window.location.pathname.split("/").pop()
+        const pathNames = window.location.pathname.split("/")
+        const playerId = pathNames.pop()
+        pathNames.pop()
+        const roomId = pathNames.pop()
         const urlParams = new URLSearchParams(window.location.search)
         const fullscreenActivated  = urlParams.get('fs') !== '0'
 
@@ -118,6 +121,7 @@
             playerWs.addEventListener('open', () => {
                 console.log('Connected to server')
                 playerWs.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify({
+                    id: playerId,
                     roomId,
                 }))
             })
@@ -194,7 +198,7 @@
 
         async function startJoypad(gameKey) {
             showSections(false, "joypad")
-            const src = await import(`../game/${gameKey}/joypad.mjs`)
+            const src = await import(`/game/${gameKey}/joypad.mjs`)
             const wrapperEl = document.querySelector("#aspect_ratio_wrapper")
             wrapperEl.innerHTML = ""
             joypad = src.startJoypad(wrapperEl, playerWs)

@@ -62,13 +62,13 @@
                 cursor: pointer;
             }
         </style>
-        <script src="qrcode.min.js"></script>
-        <script type="module" src="games-menu.mjs"></script>
+        <script src="../qrcode.min.js"></script>
+        <script type="module" src="../games-menu.mjs"></script>
     </head>
     <body style="padding: 1em; gap: 1em; justify-content: start">
         <flexrow id="header" style="gap: 2em">
-            <img class="ok logo" src="logo.jpg" />
-            <img class="error logo" src="broken_joypad.png" style="display: none" />
+            <img class="ok logo" src="../logo.jpg" />
+            <img class="error logo" src="../broken_joypad.png" style="display: none" />
             <div class="title colored" style="font-size: 5em; font-weight: bold">MultiStar</div>
         </flexrow>
         <flexcol id="sections" class="fill" style="gap: 1em">
@@ -94,8 +94,9 @@
     </body>
     <script type="module">
 
-        import Consts from './consts.mjs'
+        import Consts from '../consts.mjs'
 
+        const roomId = window.location.pathname.split("/").pop()
         const urlParams = new URLSearchParams(window.location.search)
         const nbEmbeddedJoypads  = parseInt(urlParams.get('joypad') || '0')
 
@@ -107,14 +108,14 @@
 
             gameWs.addEventListener('open', () => {
                 console.log('Connected to server')
-                gameWs.send(Consts.MSG_KEYS.IDENTIFY_GAME)
+                gameWs.send(Consts.MSG_KEYS.IDENTIFY_GAME + JSON.stringify({ id: roomId }))
+                initJoypadUrl()
             })
 
             gameWs.addEventListener('message', evt => {
                 const key = evt.data.substring(0, Consts.MSG_KEY_LENGTH)
                 const data = evt.data.substring(Consts.MSG_KEY_LENGTH)
-                if(key === Consts.MSG_KEYS.IDENTIFY_GAME) onGameIdentification(JSON.parse(data))
-                else if(key === Consts.MSG_KEYS.SYNC_PLAYERS) onSyncPlayers(JSON.parse(data))
+                if(key === Consts.MSG_KEYS.SYNC_PLAYERS) onSyncPlayers(JSON.parse(data))
                 else if(key === Consts.MSG_KEYS.JOYPAD_INPUT) onJoypadInput(data)
                 else console.warn("Unknown websocket key", key)
             })
@@ -131,10 +132,8 @@
             }
         }
 
-        function onGameIdentification(kwargs) {
-            gameWs.roomId = kwargs.roomId
-            console.log(`Identified as game for room '${gameWs.roomId}'`)
-            gameWs.joypadUrl = new URL(`room/${gameWs.roomId}`, window.location.href)
+        function initJoypadUrl() {
+            gameWs.joypadUrl = new URL(`/r/${roomId}/p`, window.location.href)
             console.log(`Joypad URL: ${gameWs.joypadUrl}`)
             const qrcodeEl = document.getElementById("qrcode")
             new QRCode(qrcodeEl, {
@@ -195,7 +194,7 @@
             const joypadsEl = document.getElementById("joypads")
             for(let i=0; i<nbEmbeddedJoypads; ++i) {
                 const iframeEl = document.createElement("iframe")
-                iframeEl.src = `${joypadUrl}?fs=0`
+                iframeEl.src = `${joypadUrl}/${i+1}?fs=0`
                 joypadsEl.appendChild(iframeEl)
             }
             joypadsEl.style.display = ""
@@ -206,7 +205,7 @@
         }
 
         async function startGame(gameKey) {
-            const src = await import(`./game/${gameKey}/game.mjs`)
+            const src = await import(`../game/${gameKey}/game.mjs`)
             const sections = ["game", "players", "games_menu"]
             if(nbEmbeddedJoypads > 0) sections.push("joypads")
             showSections(false, ...sections)

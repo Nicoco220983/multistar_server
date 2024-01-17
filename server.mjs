@@ -31,14 +31,30 @@ class GameServer {
     this.app = express()
     this.app.use(express.static('static'))
 
-    this.app.get("/games", (req, res) => {
-      res.json({ games })
+    this.app.get("/", (req, res) => {
+      res.redirect(`/r/${this.generateRoomId()}`)
     })
 
-    this.app.get("/room/:roomId", (req, res) => {
+    this.app.get("/r/:roomId", (req, res) => {
+      const { roomId } = req.params
+      res.sendFile(join(DIRNAME, "static/room.html"))
+    })
+
+    this.app.get("/r/:roomId/p", (req, res) => {
+      const { roomId } = req.params
+      const room = this.rooms[roomId]
+      if(room === undefined) return res.sendStatus(404)
+      res.redirect(`/r/${roomId}/p/${room.generatePlayerId()}`)
+    })
+
+    this.app.get("/r/:roomId/p/:playerId", (req, res) => {
       const { roomId } = req.params
       if(this.rooms[roomId] === undefined) return res.sendStatus(404)
       res.sendFile(join(DIRNAME, "static/joypad.html"))
+    })
+
+    this.app.get("/games", (req, res) => {
+      res.json({ games })
     })
   }
 
@@ -63,7 +79,7 @@ class GameServer {
         if(key === Consts.MSG_KEYS.JOYPAD_INPUT) this.onJoypadInput(ws, body)
         else if(key === Consts.MSG_KEYS.GAME_INPUT) this.onGameInput(ws, body)
         else if(key === Consts.MSG_KEYS.GAME_STATE) this.onGameState(ws, body)
-        else if(key === Consts.MSG_KEYS.IDENTIFY_GAME) this.onIdentifyGame(ws)
+        else if(key === Consts.MSG_KEYS.IDENTIFY_GAME) this.onIdentifyGame(ws, JSON.parse(body))
         else if(key === Consts.MSG_KEYS.IDENTIFY_PLAYER) this.onIdentifyPlayer(ws, JSON.parse(body))
         else if(key === Consts.MSG_KEYS.START_GAME) this.onStartGame(ws, JSON.parse(body))
         else if(key === Consts.MSG_KEYS.DISCONNECT_PLAYER) this.onDisconnectPlayer(ws, body)
@@ -92,31 +108,27 @@ class GameServer {
     }
   }
 
-  onIdentifyGame(ws) {
+  onIdentifyGame(ws, kwargs) {
     ws.type = "game"
-    const roomId = this.generateRoomId()
+    const roomId = kwargs.id
     ws.room = this.rooms[roomId] = new Room(
       roomId, ws
     )
     console.log(`Room '${roomId}' created`)
-    ws.send(Consts.MSG_KEYS.IDENTIFY_GAME + JSON.stringify({
-      roomId
-    }))
   }
 
   onIdentifyPlayer(ws, kwargs) {
     if(!ws.room) {
       // first player connection
       ws.type = "player"
-      const { roomId } = kwargs
+      const { roomId, id: playerId } = kwargs
       const room = this.rooms[roomId]
       if(!room || room.closed) { ws.close(); return }
       ws.room = room
       room.playerWebsockets[ws.id] = ws
-      console.log(`Player '${ws.id}' connected to room '${roomId}'`)
-      room.numPlayer += 1
+      console.log(`Player '${ws.id}' connected to room '${roomId}' as '${playerId}'`)
       ws.send(Consts.MSG_KEYS.IDENTIFY_PLAYER + JSON.stringify({
-        name: `Player${room.numPlayer}`,
+        name: `Player${playerId}`,
         color: "blue"
       }))
       if(room.gameKey) {
@@ -199,11 +211,17 @@ class Room {
 
   constructor(id, gameWs) {
     this.id = id
-    this.numPlayer = 0
+    this.numPlayer = 1
     this.gameWebsocket = gameWs
     this.playerWebsockets = {}
     this.gameKey = null
     this.gameState = null
+  }
+
+  generatePlayerId() {
+    const res = this.numPlayer.toString()
+    this.numPlayer += 1
+    return res
   }
 
   sendToGame(msg) {
